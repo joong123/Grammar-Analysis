@@ -124,6 +124,16 @@ enum GRM_EXTELEM
 };
 
 
+//typedef int32_t(*fAcceptGREBX)(const ch* p, const size_t len, size_t* const lena);
+typedef int32_t(*fAcceptGREBXW)(const wch* p, const size_t len, size_t* const lena);
+
+typedef struct grammar_baseelem_w_def
+{
+	GRM_BASEELEM	key;
+	const wch*		nameKey;
+	fAcceptGREBXW	fun;
+} grammar_baseelem_w_def;
+
 int32_t ConvertGrmBaseElemType(const GRM_BASEELEM type, wstr1* const key);
 int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type);
 
@@ -156,9 +166,8 @@ typedef struct grammar_base_token_manager
 } grm_basetok_mgr;
 
 
-typedef int32_t(*fAcceptGREBX)(const ch* p, const size_t len, size_t* const lena);
-
 int32_t GREBAcceptOnce(const ch* p, const size_t len, const GRM_BASEELEM key, size_t* const lena, GRM_BASEELEM* const keyo);
+int32_t GREBAcceptOnceW(const wch* p, const size_t len, const GRM_BASEELEM key, size_t* const lena, GRM_BASEELEM* const keyo);
 
 int32_t Accept_Unknown1(const ch* p, const size_t len, size_t* const lena);
 int32_t Accept_NonDisplay1(const ch* p, const size_t len, size_t* lena);

@@ -1,14 +1,8 @@
 #include "grammarbase.h"
 
 
-typedef struct grammar_baseelem_def
-{
-	GRM_BASEELEM	key;
-	const wch*		nameKey;
-	fAcceptGREBX	fun;
-} grammar_baseelem_def;
 
-static grammar_baseelem_def GRM_BASEELEM_INFO[] =
+static grammar_baseelem_w_def GRM_BASEELEMW_INFO[] =
 {
 	// TODO funptr
 	{ GRM_BASEELEM::GREB_NONE, L"B_NONE", NULL },
@@ -48,14 +42,14 @@ static grammar_baseelem_def GRM_BASEELEM_INFO[] =
 	//{ GRM_BASEELEM::GREB_ALLEXTWORD, L"GREB_ALLEXTWORD", NULL },
 	//{ GRM_BASEELEM::GREB_ALLWORD, L"GREB_ALLWORD", NULL },
 };
-static const size_t nGrmBaseElemInfo = sizeof(GRM_BASEELEM_INFO) / sizeof(grammar_baseelem_def);
+static const size_t nGrmBaseElemInfo = sizeof(GRM_BASEELEMW_INFO) / sizeof(grammar_baseelem_w_def);
 
 static size_t GetGRMBASEELEMKEYIDX(const GRM_BASEELEM key)
 {
 	size_t idx = 0;
 	for (idx = 0; idx < nGrmBaseElemInfo; ++idx)
 	{
-		if (key == GRM_BASEELEM_INFO[idx].key)
+		if (key == GRM_BASEELEMW_INFO[idx].key)
 		{
 			return idx;
 		}
@@ -68,7 +62,7 @@ int32_t ConvertGrmBaseElemType(const GRM_BASEELEM type, wstr1* const key)
 	const size_t idx = GetGRMBASEELEMKEYIDX(type);
 	if (idx < 0 || idx >= GRM_BASEELEM::GREB_COUNT)
 		return GRMR_INVINDEX;
-	return WStr1MakeCS(key, GRM_BASEELEM_INFO[idx].nameKey);
+	return WStr1MakeCS(key, GRM_BASEELEMW_INFO[idx].nameKey);
 }
 
 int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type)
@@ -78,9 +72,9 @@ int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type)
 
 	for (size_t idx = 0; idx < nGrmBaseElemInfo; ++idx)
 	{
-		if (WStr1EqualsCS(key, GRM_BASEELEM_INFO[idx].nameKey))
+		if (WStr1EqualsCS(key, GRM_BASEELEMW_INFO[idx].nameKey))
 		{
-			*type = GRM_BASEELEM_INFO[idx].key;
+			*type = GRM_BASEELEMW_INFO[idx].key;
 			return GRMR_SUCCEED;
 		}
 	}
@@ -88,7 +82,7 @@ int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type)
 	return GRMR_FAIL;
 }
 
-int32_t GREBAcceptOnce(const ch* p, const size_t len
+int32_t GREBAcceptOnceW(const wch* p, const size_t len
 	, const GRM_BASEELEM key, size_t* const lena, GRM_BASEELEM* const keyo)
 {
 	if (NULL == p || len <= 0 || NULL == lena || NULL == keyo)
@@ -97,8 +91,8 @@ int32_t GREBAcceptOnce(const ch* p, const size_t len
 	for (size_t idx = nGrmBaseElemInfo; idx > 0;)
 	{
 		--idx;
-		const fAcceptGREBX pfAccept = GRM_BASEELEM_INFO[idx].fun;
-		const GRM_BASEELEM keyn = GRM_BASEELEM_INFO[idx].key;
+		const fAcceptGREBXW pfAccept = GRM_BASEELEMW_INFO[idx].fun;
+		const GRM_BASEELEM keyn = GRM_BASEELEMW_INFO[idx].key;
 		if (!(keyn & key))
 			continue;
 

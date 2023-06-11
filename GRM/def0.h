@@ -20,7 +20,7 @@
 #define ISNULLPTR(ptr)		(NULL == (ptr))
 #endif
 
-#define PTRVAL(PTR, VAL)	if (NULL != (PTR)) *(PTR) = (VAL);
+#define SET_PTRVAL(PTR, VAL)	if (NULL != (PTR)) *(PTR) = (VAL);
 
 #define RET_ON_NEG(ret)		{ if(0 > (ret)) return (ret); }
 

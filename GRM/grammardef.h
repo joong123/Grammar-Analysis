@@ -38,6 +38,14 @@ enum GRM_RELATION_PART
 	STTRLP_PART		= 2
 };
 
+enum GRM_RELATION_BIND
+{
+	STTRBT_UNKNOWN	= 0,
+	STTRBT_NONE		= 1,
+	STTRBT_LEFT		= 2,
+	STTRBT_RIGHT	= 3
+};
+
 enum GRM_TOKEN_TYPE
 {
 	STTTKT_UNKNOWN		= 0,
@@ -57,7 +65,7 @@ enum GRM_TERMINAL_TYPE
 enum GRM_RETURN
 {
 	GRMR_FAIL			= -1,
-	GRMR_NULL		= -2,
+	GRMR_NULL			= -2,
 	GRMR_NULLARG		= -3,
 	GRMR_ALLOC			= -4,
 	GRMR_OVERFLOW		= -5,
@@ -121,11 +129,11 @@ typedef struct grm_formula
 	grm_derive		drv;
 } grm_fml;
 
-//typedef struct grm_grammar
-//{
-//	grm_token		tok0;
-//	grm_derive		drv;
-//} grm_fml;
+typedef struct grm_system
+{
+	grm_token		tok0;
+	list1			fmls;
+} grm_sys;
 
 
 
@@ -133,18 +141,21 @@ typedef struct grm_relation_def
 {
 	GRM_RELATION_TYPE	type;
 
+	int32_t				priority;
+	GRM_RELATION_BIND	bind;
+
 	bool				bEntity;
 
 	//size_t			iPart;
 	size_t				nPart;
 	list1				parts;
-} stt_rela_def_u;
+} stt_rela_def;
 
 typedef struct grm_relation
 {
 	size_t				iPart;
 	GRM_RELATION_PART	part;
-} stt_rela_u;
+} stt_rela;
 
 
 typedef struct grm_word_def
