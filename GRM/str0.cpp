@@ -109,7 +109,7 @@ static const bool bIsPODHashWStr1 = std::is_pod<str1>();
 wstr1 WStr1Default()
 {
 	wstr1 str;
-	_InitWStr1(&str);
+	InitWStr1(&str);
 	WStr1MakeDefault(&str);
 	return str;
 }
