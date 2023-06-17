@@ -142,16 +142,16 @@ int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type);
 // THIS+NEXT	IDENTIFIER, SIGNS --- NDS, WSS, DIGITS, UNKNOWNS
 typedef struct grammar_baseelem
 {
-	id_t		id;
-	wstr1		name;
-	wstr1		type;
+	id_t			id;
+	wstr1			name;
+	wstr1			type;
 } grm_baseelem;
 
 
 typedef struct base_grammar
 {
-	grm_token	start;
-	list1		fmls;
+	grm_token		start;
+	list1			fmls;
 } base_grammar;
 
 typedef map<id_t, grm_token_def*>	mapTokDef;

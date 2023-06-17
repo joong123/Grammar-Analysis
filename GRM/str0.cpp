@@ -8,66 +8,48 @@
 #endif
 
 
-#pragma region STR0
 
-wstr0 MakeWStr0(const wch* p)
+bool _PtrOverlap(const void* const p1, size_t len1, const void* const p2, size_t len2)
 {
-	if (NULL == p)
-		return NULL;
-
-	const size_t len = wcslen(p);
-
-	return MakeWStr0By(p, len);
+	return (p2 < (char*)p1 + len1) && (p1 < (char*)p2 + len2);
 }
 
-wstr0 MakeWStr0By(const wch* p, size_t len)
+bool _PtrOverlapWCH(const wch* p1, size_t len1, const wch* p2, size_t len2)
 {
-	if (NULL == p || len < 0)
-		return NULL;
-
-	if (0 == len)
-		len = wcslen(p);
-
-	const size_t cap = len + 1;
-	//if (cap <= len)
-	//	cap = len;
-	
-	wstr0 str = (wstr0)malloc(cap*sizeof(wch) + STR0HEADSIZE);
-	if (NULL == str)
-		return NULL;
-
-	STR0_SETLENCAPSTATUS(str, len, cap, STR0_STATUS_OWN);
-	_WSTR0_SETENDCHAR(str);
-	memcpy(_STR0STRADDR(str), p, len * sizeof(wch));
-
-	return str;
+	return (p2 < p1 + len1) && (p1 < p2 + len2);
 }
 
-wstr0 CopyWStr0(cwstr0c str)
+int32_t _WCSEqual(const wch* p1, size_t len, const wch* p2, size_t len2)
 {
-	if (NULL != str)
-		return MakeWStr0By(STR0STRADDR(str), STR0LEN(str));
-	else
-		return NULL;
-}
-
-int32_t ReleaseWStr0(wstr0c str)
-{
-	if (NULL != str)
-	{
-		if (STR0ISOWN(str))
-		{
-			safefree(str);
-			return 1;
-		}
-		else
-			return 2;
-	}
-	else
+	if (len != len2)
 		return 0;
+	for (size_t i = 0; i < len; ++i)
+	{
+		if (p1[i] != p2[i])
+			return 0;
+	}
+	return 1;
 }
 
-#pragma endregion STR0
+int32_t _WCSEqualCI(const wch* p1, size_t len, const wch* p2, size_t len2)
+{
+	if (len != len2)
+		return 0;
+	for (size_t i = 0; i < len; ++i)
+	{
+		if (p1[i] != p2[i])
+		{
+			const wch c1 = p1[i];
+			const wch c2 = p2[i];
+			const wch dc = (L'a' - L'A');
+			if (!(c1 >= L'a' && c1 <= 'z' && c1 - dc == c2) &&
+				!(c1 >= 'A' && c1 <= 'Z' && c1 + dc == c2))
+				return 0;
+		}
+	}
+	return 1;
+}
+
 
 
 #pragma region STR1
@@ -118,9 +100,9 @@ void InitWStr1(wstr1* str)
 {
 	if (NULL != str)
 	{
-		str->status = STR0_STATUS::STR0_STATUS_NULL;
+		str->status = STR0S_NULL;
 		str->len = 0;
-		str->p = NULL;
+		str->s1 = NULL;
 	}
 }
 
@@ -279,11 +261,8 @@ int32_t WStr1Make(wstr1* str, const wstr1* other)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return GRET_NONE;
 	if (WSTR1_ISNULL(other))
-		return WStr1Release(str);
+		return _WStr1Release(str);
 	return _WStr1MakeCSBy2(str, WSTR1_STR(other), 0, WSTR1_LEN(other));
 }
 
@@ -296,9 +275,6 @@ int32_t WStr1MakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return WStr1SubstrSelfBy(str, s, len);
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
@@ -312,9 +288,6 @@ int32_t WStr1MakeFromPos(wstr1* str, const wstr1* other, size_t s)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return GRET_NONE;
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
@@ -331,8 +304,7 @@ int32_t WStr1PureMakeDefault(wstr1* str)
 int32_t _WStr1PureMakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len)
 {
 	const int32_t ret = _WStr1InitLen(str, len);
-	if (ret < 0)
-		return ret;
+	RET_ON_NEG(ret);
 	memmove(WSTR1_STR(str), pcs + s, len * sizeof(wch));
 	return GRET_SUCCEED;
 }
@@ -341,12 +313,8 @@ int32_t _WStr1PureMakeCSFromPos(wstr1* str, const wch* pcs, size_t s, size_t te)
 {
 	if (s >= te)
 		return GRET_INVIDX;
-	const size_t len = te - s;
-	const int32_t ret = _WStr1InitLen(str, len);
-	if (ret < 0)
-		return ret;
-	memmove(WSTR1_STR(str), pcs + s, len * sizeof(wch));
-	return GRET_SUCCEED;
+	const size_t lenMake = te - s;
+	return _WStr1PureMakeCSBy2(str, pcs, s, lenMake);
 }
 
 int32_t WStr1PureMakeCH(wstr1* str, wch c)
@@ -365,9 +333,7 @@ int32_t WStr1PureMakeCS(wstr1* str, const wch* pcs)
 
 int32_t WStr1PureMakeCSBy(wstr1* str, const wch* pcs, size_t len)
 {
-	if (NULL == str || NULL == pcs)
-		return GRET_NULL;
-	return _WStr1PureMakeCSBy2(str, pcs, 0, len);
+	return WStr1PureMakeCSBy2(str, pcs, 0, len);
 }
 
 int32_t WStr1PureMakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len)
@@ -393,12 +359,9 @@ int32_t WStr1PureMake(wstr1* str, const wstr1* other)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return GRET_INVSTATUS;
 	if (WSTR1_ISNULL(other))
 	{
-		InitWStr1(str);
+		_InitWStr1(str);
 		return GRET_SUCCEED;
 	}
 	return _WStr1PureMakeCSBy2(str, WSTR1_STR(other), 0, WSTR1_LEN(other));
@@ -413,9 +376,6 @@ int32_t WStr1PureMakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return GRET_INVSTATUS;
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
@@ -429,9 +389,6 @@ int32_t WStr1PureMakeFromPos(wstr1* str, const wstr1* other, size_t s)
 {
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
-	// DO NOT CHECK SAME OBJ
-	//if (str == other)
-	//	return GRET_INVSTATUS;
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
@@ -563,7 +520,7 @@ int32_t WStr1Copy(wstr1* str, const wstr1* other)
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
 	if (WSTR1_ISNULL(other))
-		return WStr1Release(str);
+		return _WStr1Release(str);
 
 	return _WStr1CopyBy2(str, other, 0, WSTR1_LEN(other));
 }
@@ -580,10 +537,6 @@ int32_t WStr1CopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len)
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
-	// DO NOT CHECK REFMGR
-	//if (_WStr1RefMgrd(other, str))
-	//	return GRET_INVSTATUS;
-
 	return _WStr1CopyBy2(str, other, s, len);
 }
 
@@ -594,14 +547,12 @@ int32_t WStr1CopyFromPos(wstr1* str, const wstr1* other, size_t s)
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
-	// DO NOT CHECK REFMGR
-	//if (_WStr1RefMgrd(other, str))
-	//	return GRET_INVSTATUS;
-
 	const size_t lenOther = WSTR1_LEN(other);
 	if (s >= lenOther)
 		return GRET_INVIDX;
-	return _WStr1CopyBy2(str, other, s, lenOther);
+
+	const size_t lenCopy = lenOther - s;
+	return _WStr1CopyBy2(str, other, s, lenCopy);
 }
 
 int32_t WStr1PureCopyCS(wstr1* str, const wch* pcs)
@@ -640,23 +591,23 @@ int32_t _WStr1PureCopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len)
 	int32_t ret = 0;
 	switch (status)
 	{
-	case STR0_STATUS_OWN:
+	case STR0S_OWN:
 		ret = _WStr1PureMakeCSBy2(str, WSTR1_STR(other), s, len);
 		RET_ON_NEG(ret);
 		if (!WSTR1_ISOWN(str))
 			ret = _WStr1ToOwn(str);
 		return ret;
-	case STR0_STATUS_LOCAL:
+	case STR0S_LOCAL:
 		_WStr1ShallowCopy(str, other);
-		memmove(WSTR1_STR(str), WSTR1_STR(str) + s, len * sizeof(wch));
+		WSTR1_MOVE(str, s, 0, len);
 		WSTR1_STRAT(str, WSTR1_LEN(str)) = WSTRENDCHAR;
 		return GRET_SUCCEED;
-	case STR0_STATUS_REF:
+	case STR0S_REF:
 		_WStr1ShallowCopy(str, other);
-		str->p += s;
+		str->s1 += s;
 		str->len = len;
 		return GRET_SUCCEED;
-	case STR0_STATUS_NULL:
+	case STR0S_NULL:
 	default:
 		return GRET_INVSTATUS;
 	}
@@ -666,8 +617,8 @@ int32_t _WStr1PureCopyFromPos(wstr1* str, const wstr1* other, size_t s, size_t t
 {
 	if (s >= te)
 		return GRET_INVIDX;
-	const size_t len = te - s;
-	return _WStr1PureCopyBy2(str, other, s, len);
+	const size_t lenCopy = te - s;
+	return _WStr1PureCopyBy2(str, other, s, lenCopy);
 }
 
 int32_t WStr1PureCopyTmp(wstr1* str, const wstr1 tmp)
@@ -680,7 +631,10 @@ int32_t WStr1PureCopy(wstr1* str, const wstr1* other)
 	if (NULL == str || NULL == other)
 		return GRET_NULL;
 	if (WSTR1_ISNULL(other))
-		return WStr1Release(str);
+	{
+		_InitWStr1(str);
+		return GRET_SUCCEED;
+	}
 
 	return _WStr1PureCopyBy2(str, other, 0, WSTR1_LEN(other));
 }
@@ -717,19 +671,6 @@ int32_t WStr1Move(wstr1* str, wstr1* other)
 	return _WStr1Move(str, other);
 }
 
-//int32_t WStr1MoveBy(wstr1* str, wstr1* other, size_t len)
-//{
-//	return WStr1MoveBy2(str, other, 0, len);
-//}
-
-//int32_t WStr1MoveBy2(wstr1* str, wstr1* other, size_t s, size_t len)
-//{
-//	const int32_t ret = WStr1Move(str, other);
-//	if (ret < 0)
-//		return ret;
-//	return WStr1SubstrSelfBy(other, s, len);
-//}
-
 wstr1 RefWStr1CS(wch* pcs, int32_t* pRet)
 {
 	wstr1 str;
@@ -765,15 +706,6 @@ wstr1 RefWStr1CSFromPos(wch* pcs, size_t s, int32_t* pRet)
 	SET_PTRVAL(pRet, ret);
 	return str;
 }
-
-//wstr1 RefWStr1Tmp(const wstr1 tmp, int32_t* pRet)
-//{
-//	wstr1 str;
-//	InitWStr1(&str);
-//	const int32_t ret = WStr1RefTmp(&str, tmp);
-//	SET_PTRVAL(pRet, ret);
-//	return str;
-//}
 
 wstr1 RefWStr1(const wstr1* other, int32_t* pRet)
 {
@@ -815,9 +747,9 @@ int32_t _WStr1RefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len)
 {
 	const int32_t ret = _WStr1Release(str);
 
-	str->p = pcs + s;
+	str->s1 = pcs + s;
 	str->len = len;
-	str->status = STR0_STATUS_REF;
+	str->status = STR0S_REF;
 
 	return GRET_SUCCEED;
 }
@@ -826,13 +758,13 @@ int32_t _WStr1RefCSFromPos(wstr1* str, wch* pcs, size_t s, size_t te)
 {
 	if (s >= te)
 		return GRET_INVIDX;
-	const size_t len = te - s;
 
 	const int32_t ret = _WStr1Release(str);
 
-	str->p = pcs + s;
-	str->len = len;
-	str->status = STR0_STATUS_REF;
+	const size_t lenRef = te - s;
+	str->s1 = pcs + s;
+	str->len = lenRef;
+	str->status = STR0S_REF;
 
 	return GRET_SUCCEED;
 }
@@ -863,11 +795,6 @@ int32_t WStr1RefCSFromPos(wstr1* str, wch* pcs, size_t s)
 	return _WStr1RefCSFromPos(str, pcs, s, wcslen(pcs));
 }
 
-//int32_t WStr1RefTmp(wstr1* str, const wstr1 tmp)
-//{
-//	return WStr1Ref(str, &tmp);
-//}
-
 int32_t WStr1Ref(wstr1* str, const wstr1* other)
 {
 	if (NULL == str || NULL == other)
@@ -890,6 +817,10 @@ int32_t WStr1RefBy2(wstr1* str, const wstr1* other, size_t s, size_t len)
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
+	const size_t lenOther = WSTR1_LEN(other);
+	if (s >= lenOther || len > lenOther - s)
+		return GRET_INVIDX;
+
 	return _WStr1RefCSBy2(str, (wch*)WSTR1_STR(other), s, len);
 }
 
@@ -900,14 +831,15 @@ int32_t WStr1RefFromPos(wstr1* str, const wstr1* other, size_t s)
 	if (WSTR1_ISNULL(other))
 		return GRET_INVSTATUS;
 
-	return _WStr1RefCSFromPos(str, (wch*)WSTR1_STR(other), s, WSTR1_LEN(other));
+	const size_t lenOther = WSTR1_LEN(other);
+	return _WStr1RefCSFromPos(str, (wch*)WSTR1_STR(other), s, lenOther);
 }
 
 int32_t _WStr1PureRefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len)
 {
-	str->p = pcs + s;
+	str->s1 = pcs + s;
 	str->len = len;
-	str->status = STR0_STATUS_REF;
+	str->status = STR0S_REF;
 
 	return GRET_SUCCEED;
 }
@@ -916,11 +848,11 @@ int32_t _WStr1PureRefCSFromPos(wstr1* str, wch* pcs, size_t s, size_t te)
 {
 	if (s >= te)
 		return GRET_INVIDX;
-	const size_t len = te - s;
 
-	str->p = pcs + s;
-	str->len = len;
-	str->status = STR0_STATUS_REF;
+	const size_t lenRef = te - s;
+	str->s1 = pcs + s;
+	str->len = lenRef;
+	str->status = STR0S_REF;
 
 	return GRET_SUCCEED;
 }
@@ -935,7 +867,7 @@ int32_t WStr1Deref(wstr1* str)
 	if (!WSTR1_ISREF(str))
 		return GRET_NONE;
 
-	return _WStr1MakeCSBy2(str, str->p, 0, str->len);
+	return _WStr1ToOwn(str);
 }
 
 int32_t WStr1PureRefCS(wstr1* str, wch* pcs)
@@ -963,11 +895,6 @@ int32_t WStr1PureRefCSFromPos(wstr1* str, wch* pcs, size_t s)
 		return GRET_NULL;
 	return _WStr1PureRefCSFromPos(str, pcs, s, wcslen(pcs));
 }
-
-//int32_t WStr1PureRefTmp(wstr1* str, const wstr1 tmp)
-//{
-//	return WStr1PureRef(str, &tmp);
-//}
 
 int32_t WStr1PureRef(wstr1* str, const wstr1* other)
 {
@@ -1014,6 +941,16 @@ int32_t WStr1Clear(wstr1* str)
 	return _WStr1Relen(str, 0);
 }
 
+int32_t WStr1ClearLazy(wstr1* str)
+{
+	if (NULL == str)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str))
+		return GRET_NONE;
+
+	return _WStr1RelenLazy(str, 0);
+}
+
 int32_t WStr1Attach(wstr1* str, wch* pcs)
 {
 	if (NULL == str)
@@ -1022,9 +959,9 @@ int32_t WStr1Attach(wstr1* str, wch* pcs)
 	const int32_t ret = _WStr1Release(str);
 	if (NULL == pcs)
 		return GRET_SUCCEED;
-	str->p = pcs;
+	str->s1 = pcs;
 	str->len = wcslen(pcs);
-	str->status = STR0_STATUS_OWN;
+	str->status = STR0S_OWN;
 	return GRET_SUCCEED;
 }
 
@@ -1034,9 +971,17 @@ int32_t WStr1Detach(wstr1* str, wch** ppcs)
 		return GRET_NULL;
 	if (!WSTR1_ISOWN(str))
 		return GRET_INVSTATUS;
-	SET_PTRVAL(ppcs, str->p);
+	SET_PTRVAL(ppcs, str->s1);
 	const int32_t ret = _WStr1Abandon(str);
 	return GRET_SUCCEED;
+}
+
+int32_t WStr1ReAttach(wstr1* str, wch* pcs, wch** ppcsOld)
+{
+	if (NULL == str)
+		return GRET_NULL;
+	SET_PTRVAL(ppcsOld, WSTR1_STR(str));
+	return WStr1Attach(str, pcs);
 }
 
 int32_t WStr1Release(wstr1* str)
@@ -1050,8 +995,6 @@ int32_t WStr1Abandon(wstr1* str)
 {
 	if (NULL == str)
 		return GRET_NULL;
-	if (WSTR1_ISNULL(str))
-		return GRET_NONE;
 	return _WStr1Abandon(str);
 }
 
@@ -1079,7 +1022,7 @@ int32_t WStr1Fit(wstr1* str)
 	if (!WSTR1_ISOWN(str))
 		return GRET_NONE;
 
-	return _WStr1Relen(str, WSTR1_LEN(str));
+	return _WStr1Recap(str, WSTR1_LEN(str) + 1);
 }
 
 int32_t WStr1Relen(wstr1* str, size_t len, bool bLazy)
@@ -1089,8 +1032,16 @@ int32_t WStr1Relen(wstr1* str, size_t len, bool bLazy)
 	return bLazy ? _WStr1RelenLazy(str, len) : _WStr1Relen(str, len);
 }
 
+void _InitWStr1(wstr1* str)
+{
+	str->status = STR0S_NULL;
+	str->len = 0;
+	str->s1 = NULL;
+}
+
 void _WStr1ShallowCopy(wstr1* str, const wstr1* other)
 {
+	const int32_t ret = _WStr1Release(str);
 	memmove(str, other, sizeof(wstr1));
 }
 
@@ -1100,61 +1051,58 @@ int32_t _WStr1Move(wstr1* str, wstr1* other)
 	if (str == other)
 		return GRET_NONE;
 
-	// DO NOT CHECK REFMGR
-	//if (_WStr1RefMgrd(other, str))
-	//	return GRET_INVSTATUS;
+	const int32_t ret = _WStr1Release(str);
 
-	const int32_t ret = WStr1Release(str);
+	memmove(str, other, sizeof(wstr1));
+	//if (!WSTR1_ISLOCAL(other))
+	//{
+	//	str->len = other->len;
+	//	str->s1 = other->s1;
+	//}
+	//else
+	//{
+	//	memmove(str->s0, other->s0, WSTR1_CAP0 * sizeof(wch));
+	//}
+	//str->status = other->status;
 
-	if (!WSTR1_ISLOCAL(other))
-	{
-		str->len = other->len;
-		str->p = other->p;
-	}
-	else
-	{
-		memmove(str->s0, other->s0, WSTR1_LEN0 * sizeof(wch));
-	}
-	str->status = other->status;
-
-	InitWStr1(other);
+	_InitWStr1(other);
 
 	return GRET_SUCCEED;
 }
 
 int32_t _WStr1InitCap(wstr1* str, size_t cap)
 {
-	if (cap > WSTR1_LEN0)
+	if (cap > WSTR1_CAP0)
 	{
 		wch* const pn = (wch*)malloc(cap * sizeof(wch));
 		if (NULL == pn)
 			return GRET_MALLOC;
-		str->p = pn;
-		str->status = STR0_STATUS::STR0_STATUS_OWN;
+		str->s1 = pn;
+		str->status = STR0S_OWN;
 	}
 	else
 	{
-		str->status = STR0_STATUS::STR0_STATUS_LOCAL;
+		str->status = STR0S_LOCAL;
 	}
 	return GRET_SUCCEED;
 }
 
 int32_t _WStr1Recap(wstr1* str, size_t cap)
 {
-	if (cap > WSTR1_LEN0 && !WSTR1_ISOWN(str))
+	if (cap > WSTR1_CAP0 && !WSTR1_ISOWN(str))
 	{
 		return _WStr1ToOwn(str, cap);
 	}
-	else if (cap <= WSTR1_LEN0 && !WSTR1_ISLOCAL(str))
+	else if (cap <= WSTR1_CAP0 && !WSTR1_ISLOCAL(str))
 	{
 		return _WStr1ToLocal(str, cap);
 	}
 	else if (WSTR1_ISOWN(str))
 	{
-		wch* const pn = (wch*)realloc(str->p, cap * sizeof(wch));
+		wch* const pn = (wch*)realloc(str->s1, cap * sizeof(wch));
 		if (NULL == pn)
 			return GRET_MALLOC;
-		str->p = pn;
+		str->s1 = pn;
 		return GRET_SUCCEED;
 	}
 	return GRET_NONE;
@@ -1183,8 +1131,7 @@ int32_t _WStr1Relen(wstr1* str, size_t len)
 		return GRET_OVERFLOW;
 
 	const int32_t ret = _WStr1Recap(str, cap);
-	if (ret < 0)
-		return ret;
+	RET_ON_NEG(ret);
 
 	if (!WSTR1_ISLOCAL(str))
 		str->len = len;
@@ -1206,9 +1153,9 @@ int32_t _WStr1RelenLazy(wstr1* str, size_t len)
 
 int32_t _WStr1ExtendBy(wstr1* str, size_t dLen)
 {
-	const size_t len = WSTR1_LEN(str);
-	const size_t lenNew = len + dLen;
-	if (lenNew < len)
+	const size_t lenOld = WSTR1_LEN(str);
+	const size_t lenNew = lenOld + dLen;
+	if (lenNew < lenOld)
 		return GRET_OVERFLOW;
 
 	return _WStr1Relen(str, lenNew);
@@ -1216,10 +1163,22 @@ int32_t _WStr1ExtendBy(wstr1* str, size_t dLen)
 
 int32_t _WStr1ShrinkBy(wstr1* str, size_t dLen)
 {
-	const size_t len = WSTR1_LEN(str);
-	const size_t lenNew = len > dLen ? len - dLen : 0;
+	const size_t lenOld = WSTR1_LEN(str);
+	if (dLen > lenOld)
+		return GRET_INVIDX;
 
+	const size_t lenNew = lenOld - dLen;
 	return _WStr1Relen(str, lenNew);
+}
+
+int32_t _WStr1ShrinkByLazy(wstr1* str, size_t dLen)
+{
+	const size_t lenOld = WSTR1_LEN(str);
+	if (dLen > lenOld)
+		return GRET_INVIDX;
+
+	const size_t lenNew = lenOld - dLen;
+	return _WStr1RelenLazy(str, lenNew);
 }
 
 int32_t _WStr1ToOwn(wstr1* str, size_t recap)
@@ -1239,12 +1198,12 @@ int32_t _WStr1ToOwn(wstr1* str, size_t recap)
 		const size_t lenCopy = min(lenOld, recap - 1);
 		if (!bIsNull)
 			memmove(pn, WSTR1_STR(str), lenCopy * sizeof(wch));
-		pn[lenCopy] = WSTRENDCHAR;// needed for REF
 
 		//const size_t lenNew = recap - 1;
-		str->p = pn;
+		str->s1 = pn;
 		str->len = lenOld;// lenNew - recap do not change len
-		str->status = STR0_STATUS::STR0_STATUS_OWN;
+		pn[lenCopy] = WSTRENDCHAR;// needed for REF
+		str->status = STR0S_OWN;
 
 		return GRET_SUCCEED;
 	}
@@ -1257,26 +1216,25 @@ int32_t _WStr1ToLocal(wstr1* str, size_t recap)
 	{
 		if (WSTR1_ISNULL(str))
 		{
-			const size_t lenOld = 0;
-			str->s0[lenOld] = WSTRENDCHAR;
-			str->status = STR0_STATUS::STR0_STATUS_LOCAL;
+			str->s0[0] = WSTRENDCHAR;
+			str->status = STR0S_LOCAL;
 			return GRET_SUCCEED;
 		}
 
 		const size_t lenOld = WSTR1_LEN(str);
 		if (0 == recap)
 			recap = lenOld + 1;
-		recap = min(recap, WSTR1_LEN0);
+		recap = min(recap, WSTR1_CAP0);
 		const size_t lenCopy = min(lenOld, recap - 1);
 		//const size_t lenNew = recap - 1;
 
-		wch* const psOld = str->p;
+		wch* const psOld = str->s1;
 		const bool bOldOwn = WSTR1_ISOWN(str);
 
-		memmove(str->s0, str->p, lenCopy * sizeof(wch));
+		memmove(str->s0, str->s1, lenCopy * sizeof(wch));
 		str->s0[lenCopy] = WSTRENDCHAR;// needed
-		//str->len = lenOld;// no need
-		str->status = STR0_STATUS::STR0_STATUS_LOCAL;
+		str->len = lenCopy;// update len
+		str->status = STR0S_LOCAL;
 
 		if (bOldOwn)
 			safefree(psOld);
@@ -1286,22 +1244,22 @@ int32_t _WStr1ToLocal(wstr1* str, size_t recap)
 	return GRET_NONE;
 }
 
-int32_t _WStr1AddrOverlap(const wstr1* str, const wstr1* str2)
+int32_t _WStr1Overlap(const wstr1* str, const wstr1* str2)
 {
 	return _PtrOverlapWCH(WSTR1_STR(str), WSTR1_LEN(str),
 		WSTR1_STR(str2), WSTR1_LEN(str2));
 }
 
-int32_t _WStr1AddrOverlapCS(const wstr1* str, const wch* pcs, size_t len)
+int32_t _WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s2, size_t len2)
 {
 	return _PtrOverlapWCH(WSTR1_STR(str), WSTR1_LEN(str),
-		pcs, len);
+		pcs + s2, len2);
 }
 
 bool _WStr1RefMgrd(const wstr1* str, const wstr1* str2)
 {
-	return WSTR1_ISREF(str) &&
-		(!WSTR1_ISNULLP(str2) && !WSTR1_ISREF(str2) && _WStr1AddrOverlap(str, str2));
+	return WSTR1_ISREF(str) && (!WSTR1_ISNULLSTR(str2) && !WSTR1_ISREF(str2))
+		&& _WStr1Overlap(str, str2);
 }
 
 int32_t _WStr1Release(wstr1* str)
@@ -1311,32 +1269,36 @@ int32_t _WStr1Release(wstr1* str)
 
 	if (WSTR1_ISOWN(str))
 	{
-		safefree(str->p);
+		safefree(str->s1);
 	}
-	InitWStr1(str);
+	_InitWStr1(str);
 	return GRET_SUCCEED;
 }
 
 int32_t _WStr1Abandon(wstr1* str)
 {
-	InitWStr1(str);
+	if (WSTR1_ISNULL(str))
+		return GRET_NONE;
+	_InitWStr1(str);
 	return GRET_SUCCEED;
 }
 
 const wch* WStr1Str(const wstr1* str)
 {
-	return (!WSTR1_ISNULLP(str)) ? WSTR1_STR(str) : NULL;
+	return (!WSTR1_ISNULLSTR(str)) ? WSTR1_STR(str) : NULL;
 }
 
 const wch* WStr1CStr(wstr1* str, int32_t* pRet)
 {
-	if (WSTR1_ISNULLP(str))
+	if (WSTR1_ISNULLSTR(str))
 		return NULL;
 
 	if (WSTR1_ISREF(str))
 	{
 		const int32_t ret = WStr1Deref(str);
-		SET_PTRVAL(pRet, ret)
+		SET_PTRVAL(pRet, ret);
+		if (ret < 0)
+			return NULL;
 	}
 
 	return WSTR1_STR(str);
@@ -1344,7 +1306,7 @@ const wch* WStr1CStr(wstr1* str, int32_t* pRet)
 
 size_t WStr1Len(const wstr1* str)
 {
-	if (WSTR1_ISNULLP(str))
+	if (WSTR1_ISNULLSTR(str))
 		return 0;
 	return WSTR1_LEN(str);
 }
@@ -1356,24 +1318,35 @@ bool WStr1IsNull0(const wstr1 str)
 
 bool WStr1IsEmpty0(const wstr1 str)
 {
-	return !(WSTR1_ISNULL(&str)) && (0 == WSTR1_LEN(&str));
+	return !(WSTR1_ISNULL(&str)) && 0 == WSTR1_LEN(&str);
+}
+
+bool WStr1IsNullOrEmpty0(const wstr1 str)
+{
+	if (WStr1IsNull0(str))
+		return true;
+	return 0 == WSTR1_LEN(&str);
 }
 
 bool WStr1IsNull(const wstr1* str)
 {
-	return NULL == str || WSTR1_ISNULL(str);
+	if (NULL == str)
+		return NULL;
+	return WSTR1_ISNULL(str);
 }
 
 bool WStr1IsEmpty(const wstr1* str)
 {
-	return NULL != str && !(WSTR1_ISNULL(str)) && (0 == WSTR1_LEN(str));
+	if (NULL == str)
+		return NULL;
+	return !(WSTR1_ISNULL(str)) && (0 == WSTR1_LEN(str));
 }
 
 bool WStr1IsNullOrEmpty(const wstr1* str)
 {
 	if (WStr1IsNull(str))
 		return true;
-	return (0 == WSTR1_LEN(str));
+	return 0 == WSTR1_LEN(str);
 }
 
 int32_t WStr1IsNullP(const wstr1* str)
@@ -1411,7 +1384,7 @@ int32_t WStr1Equals(const wstr1* str, const wstr1* str2)
 
 	const wch* const ps1 = WSTR1_STR(str);
 	const wch* const ps2 = WSTR1_STR(str2);
-	return _WStrEquals(ps1, WSTR1_LEN(str), ps2, WSTR1_LEN(str2));
+	return _WCSEqual(ps1, WSTR1_LEN(str), ps2, WSTR1_LEN(str2));
 }
 
 int32_t WStr1EqualsTmp(const wstr1 tmp1, const wstr1 tmp2)
@@ -1419,16 +1392,15 @@ int32_t WStr1EqualsTmp(const wstr1 tmp1, const wstr1 tmp2)
 	return WStr1Equals(&tmp1, &tmp2);
 }
 
-int32_t _WStrEquals(const wch* p1, size_t len, const wch* p2, size_t len2)
+int32_t WStr1EqualsCH(const wstr1* str, wch c)
 {
-	if (len != len2)
-		return 0;
-	for (size_t i = 0; i < len; ++i)
-	{
-		if (p1[i] != p2[i])
-			return 0;
-	}
-	return 1;
+	if (NULL == str)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str))
+		return GRET_INVSTATUS;
+
+	const wch* const ps1 = WSTR1_STR(str);
+	return _WCSEqual(ps1, WSTR1_LEN(str), &c, 1);
 }
 
 int32_t WStr1EqualsCS(const wstr1* str, const wch* pcs)
@@ -1439,10 +1411,10 @@ int32_t WStr1EqualsCS(const wstr1* str, const wch* pcs)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEquals(ps1, WSTR1_LEN(str), pcs, wcslen(pcs));
+	return _WCSEqual(ps1, WSTR1_LEN(str), pcs, wcslen(pcs));
 }
 
-int32_t WStr1EqualsCS2(const wstr1* str, const wch* pcs, size_t len)
+int32_t WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len2)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1450,10 +1422,10 @@ int32_t WStr1EqualsCS2(const wstr1* str, const wch* pcs, size_t len)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEquals(ps1, WSTR1_LEN(str), pcs, len);
+	return _WCSEqual(ps1, WSTR1_LEN(str), pcs, len2);
 }
 
-int32_t WStr1EqualsCS3(const wstr1* str, const wch* pcs, size_t s, size_t len)
+int32_t WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s2, size_t len2)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1461,26 +1433,33 @@ int32_t WStr1EqualsCS3(const wstr1* str, const wch* pcs, size_t s, size_t len)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEquals(ps1, WSTR1_LEN(str), pcs + s, len);
+	return _WCSEqual(ps1, WSTR1_LEN(str), pcs + s2, len2);
 }
 
-int32_t _WStrEqualsCI(const wch* p1, size_t len, const wch* p2, size_t len2)
+int32_t WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s2, size_t len2)
 {
-	if (len != len2)
-		return 0;
-	for (size_t i = 0; i < len; ++i)
-	{
-		if (p1[i] != p2[i])
-		{
-			const wch c1 = p1[i];
-			const wch c2 = p2[i];
-			const wch dc = (L'a' - L'A');
-			if ((c1 >= L'a' && c1 <= 'z' && c1 - dc == c2) ||
-				(c1 >= 'A' && c1 <= 'Z' && c1 + dc == c2))
-				return 0;
-		}
-	}
-	return 1;
+	if (NULL == str || NULL == pcs)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str))
+		return GRET_INVSTATUS;
+
+	const size_t lenStr1 = WSTR1_LEN(str);
+	if (s1 >= lenStr1 || len1 > lenStr1 - s1)
+		return GRET_INVIDX;
+
+	const wch* const ps1 = WSTR1_STR(str);
+	return _WCSEqual(ps1 + s1, len1, pcs + s2, len2);
+}
+
+int32_t WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s2, size_t len2)
+{
+	if (NULL == pcs)
+		return GRET_NULL;
+	if (WSTR1_ISNULLO(tmp))
+		return GRET_INVSTATUS;
+
+	const wch* const ps1 = WSTR1_STRO(tmp);
+	return _WCSEqual(ps1, WSTR1_LENO(tmp), pcs + s2, len2);
 }
 
 int32_t WStr1EqualsI(const wstr1* str, const wstr1* str2)
@@ -1492,12 +1471,23 @@ int32_t WStr1EqualsI(const wstr1* str, const wstr1* str2)
 
 	const wch* const ps1 = WSTR1_STR(str);
 	const wch* const ps2 = WSTR1_STR(str2);
-	return _WStrEqualsCI(ps1, WSTR1_LEN(str), ps2, WSTR1_LEN(str2));
+	return _WCSEqualCI(ps1, WSTR1_LEN(str), ps2, WSTR1_LEN(str2));
 }
 
 int32_t WStr1EqualsITmp(const wstr1 tmp1, const wstr1 tmp2)
 {
 	return WStr1EqualsI(&tmp1, &tmp2);
+}
+
+int32_t WStr1EqualsICH(const wstr1* str, wch c)
+{
+	if (NULL == str)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str))
+		return GRET_INVSTATUS;
+
+	const wch* const ps1 = WSTR1_STR(str);
+	return _WCSEqualCI(ps1, WSTR1_LEN(str), &c, 1);
 }
 
 int32_t WStr1EqualsICS(const wstr1* str, const wch* pcs)
@@ -1508,10 +1498,10 @@ int32_t WStr1EqualsICS(const wstr1* str, const wch* pcs)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEqualsCI(ps1, WSTR1_LEN(str), pcs, wcslen(pcs));
+	return _WCSEqualCI(ps1, WSTR1_LEN(str), pcs, wcslen(pcs));
 }
 
-int32_t WStr1EqualsICS2(const wstr1* str, const wch* pcs, size_t len)
+int32_t WStr1EqualsICSBy(const wstr1* str, const wch* pcs, size_t len2)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1519,10 +1509,10 @@ int32_t WStr1EqualsICS2(const wstr1* str, const wch* pcs, size_t len)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEqualsCI(ps1, WSTR1_LEN(str), pcs, len);
+	return _WCSEqualCI(ps1, WSTR1_LEN(str), pcs, len2);
 }
 
-int32_t WStr1EqualsICS3(const wstr1* str, const wch* pcs, size_t s, size_t len)
+int32_t WStr1EqualsICSBy2(const wstr1* str, const wch* pcs, size_t s2, size_t len2)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1530,7 +1520,33 @@ int32_t WStr1EqualsICS3(const wstr1* str, const wch* pcs, size_t s, size_t len)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WStrEqualsCI(ps1, WSTR1_LEN(str), pcs + s, len);
+	return _WCSEqualCI(ps1, WSTR1_LEN(str), pcs + s2, len2);
+}
+
+int32_t WStr1EqualsICSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s2, size_t len2)
+{
+	if (NULL == str || NULL == pcs)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str))
+		return GRET_INVSTATUS;
+
+	const size_t lenStr1 = WSTR1_LEN(str);
+	if (s1 >= lenStr1 || len1 > lenStr1 - s1)
+		return GRET_INVIDX;
+
+	const wch* const ps1 = WSTR1_STR(str);
+	return _WCSEqualCI(ps1 + s1, len1, pcs + s2, len2);
+}
+
+int32_t WStr1EqualsITmpCSBy2(wstr1 tmp, const wch* pcs, size_t s2, size_t len2)
+{
+	if (NULL == pcs)
+		return GRET_NULL;
+	if (WSTR1_ISNULLO(tmp))
+		return GRET_INVSTATUS;
+
+	const wch* const ps1 = WSTR1_STRO(tmp);
+	return _WCSEqualCI(ps1, WSTR1_LENO(tmp), pcs + s2, len2);
 }
 
 int32_t WStr1ToLower(wstr1* str)
@@ -1559,7 +1575,7 @@ int32_t WStr1ToUpper(wstr1* str)
 	if (WSTR1_ISNULL(str))
 		return GRET_INVSTATUS;
 
-	wch* const ps = WSTR1_STR(str);
+	wch* ps = WSTR1_STR(str);
 	const size_t len = WSTR1_LEN(str);
 	for (size_t i = 0; i < len; ++i)
 	{
@@ -1608,13 +1624,12 @@ int32_t _WStr1SubstrSelfBy(wstr1* str, size_t s, size_t len)
 
 	if (WSTR1_ISREF(str))
 	{
-		str->p += s;
+		str->s1 += s;
 		str->len = len;
 		return GRET_SUCCEED;
 	}
 
-	wch* const ps = WSTR1_STR(str);
-	memmove(ps, ps + s, len * sizeof(wch));
+	WSTR1_MOVE(str, s, 0, len);
 
 	return _WStr1RelenLazy(str, len);
 }
@@ -1656,14 +1671,12 @@ int32_t WStr1SubstrSelfFromPos(wstr1* str, size_t s)
 int32_t _WStr1RemoveBy(wstr1* str, size_t s, size_t len)
 {
 	const size_t lenStr = WSTR1_LEN(str);
-	if (s >= lenStr)
+	if (s >= lenStr || len > lenStr - s)
 		return GRET_INVIDX;
-	len = min(len, lenStr - s);
 
-	wch* const ps = WSTR1_STR(str);
-	memmove(ps + s, ps + s + len, (lenStr - len - s) * sizeof(wch));
+	WSTR1_MOVE(str, s + len, s, (lenStr - len - s));
 
-	return GRET_SUCCEED;// _WStr1ShrinkBy(str, len);
+	return _WStr1ShrinkByLazy(str, len);
 }
 
 int32_t WStr1RemoveAt(wstr1* str, size_t i)
@@ -1720,33 +1733,6 @@ int32_t WStr1RemoveBy(wstr1* str, size_t s, size_t len)
 	return _WStr1RemoveBy(str, s, len);
 }
 
-int32_t WStr1InsertCH(wstr1* str, size_t pos, wch c)
-{
-	if (NULL == str)
-		return GRET_NULL;
-	if (WSTR1_ISNULL(str) || WSTR1_ISREF(str))
-		return GRET_INVSTATUS;
-
-	const size_t lenStr1 = WSTR1_LEN(str);
-	if (pos >= lenStr1)
-		return GRET_INVIDX;
-
-	const int32_t ret = _WStr1ExtendBy(str, 1);
-	RET_ON_NEG(ret);
-
-	wch* const ps = WSTR1_STR(str);
-	const size_t nMov = lenStr1 - pos;
-	memmove(ps + pos + 1, ps + pos, nMov * sizeof(wch));
-	ps[pos] = c;
-
-	return GRET_SUCCEED;
-}
-
-int32_t WStr1InsertTmp(wstr1* str, size_t pos, wstr1 tmp)
-{
-	return WStr1Insert(str, pos, &tmp);
-}
-
 int32_t _WStr1InsertCSBy2(wstr1* str, size_t pos, const wch* pcs, size_t s2, size_t len2)
 {
 	const size_t lenStr1 = WSTR1_LEN(str);
@@ -1778,6 +1764,21 @@ int32_t _WStr1InsertCSBy2(wstr1* str, size_t pos, const wch* pcs, size_t s2, siz
 	}
 
 	return GRET_SUCCEED;
+}
+
+int32_t WStr1InsertCH(wstr1* str, size_t pos, wch c)
+{
+	if (NULL == str)
+		return GRET_NULL;
+	if (WSTR1_ISNULL(str) || WSTR1_ISREF(str))
+		return GRET_INVSTATUS;
+
+	return _WStr1InsertCSBy2(str, pos, &c, 0, 1);
+}
+
+int32_t WStr1InsertTmp(wstr1* str, size_t pos, wstr1 tmp)
+{
+	return WStr1Insert(str, pos, &tmp);
 }
 
 int32_t WStr1Insert(wstr1* str, size_t pos, const wstr1* str2)
@@ -2002,16 +2003,6 @@ int64_t hashWStr_Def64(const wch* pcs, size_t len)
 		hash += *pn;
 	}
 	return hash;
-}
-
-bool _PtrOverlap(const void* const p1, size_t len1, const void* const p2, size_t len2)
-{
-	return (p2 < (char*)p1 + len1) && (p1 < (char*)p2 + len2);
-}
-
-bool _PtrOverlapWCH(const wch* p1, size_t len1, const wch* p2, size_t len2)
-{
-	return (p2 < p1 + len1) && (p1 < p2 + len2);
 }
 
 #pragma endregion STR1

@@ -141,8 +141,9 @@ typedef struct grm_relation_def
 {
 	GRM_RELATION_TYPE	type;
 
-	int32_t				priority;
-	GRM_RELATION_BIND	bind;
+	int32_t				priority; // priority
+	int32_t				serNo; // control position in 'normalized expression'
+	GRM_RELATION_BIND	bind; // bind
 
 	bool				bEntity;
 
@@ -151,7 +152,7 @@ typedef struct grm_relation_def
 	list1				parts;
 } stt_rela_def;
 
-typedef struct grm_relation
+typedef struct grm_relation_data
 {
 	size_t				iPart;
 	GRM_RELATION_PART	part;
@@ -166,7 +167,7 @@ typedef struct grm_word_def
 	wstr1			idtype;
 } grm_word_def;
 
-typedef union grm_word
+typedef union grm_word_data
 {
 	/*int32_t		i;
 	int64_t		l;
@@ -225,7 +226,7 @@ typedef struct grm_elem
 	GRM_ELEM_TYPE	type;
 	union
 	{
-		grm_relation	relation;
-		grm_word		word;
+		grm_relation_data	relation;
+		grm_word_data		word;
 	};
 } grm_elem;
