@@ -370,13 +370,6 @@ int32_t		WStr1AddCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
 
 int32_t		WStr1Trim(wstr1* str);
 int32_t		WStr1TrimCHs(wstr1* str, const wch* pcs);
-int32_t		WStr1ContainsCH(const wstr1* str, wch c);
-int32_t		WStr1ContainsCHs(const wstr1* str, const wch* pcs);
-int32_t		WStr1ContainsCS(const wstr1* str, const wch* pcs);
-int32_t		WStr1ContainsCSBy(const wstr1* str, const wch* pcs, size_t s2, size_t len2);
-int32_t		WStr1Contains(const wstr1* str, const wstr1* str2);
-int32_t		WStr1ContainsBy(const wstr1* str, const wstr1* str2, size_t s2, size_t len2);
-int32_t		WStr1ContainsTmp(const wstr1* str, wstr1 tmp);
 int32_t		_WStr1IsAtCSBy2(const wstr1* str, size_t pos, const wch* pcs, size_t s2, size_t len2);
 int32_t		WStr1StartWithCH(const wstr1* str, wch c);
 int32_t		WStr1StartWithCHs(const wstr1* str, const wch* pcs);
@@ -399,6 +392,8 @@ int32_t		WStr1IsAtCSBy(const wstr1* str, size_t pos, const wch* pcs, size_t s2, 
 int32_t		WStr1IsAt(const wstr1* str, size_t pos, const wstr1* str2);
 int32_t		WStr1IsAtBy(const wstr1* str, size_t pos, const wstr1* str2, size_t s2, size_t len2);
 int32_t		WStr1IsAtTmp(const wstr1* str, size_t pos, wstr1 tmp);
+int32_t		_WStr1FindCHs(const wstr1* str, const wch* pcs, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL, bool bL2R = true);
+int32_t		_WStr1FindCSBy(const wstr1* str, const wch* pcs, size_t s2, size_t len2, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL, bool bL2R = true);
 int32_t		WStr1FindCH(const wstr1* str, wch c, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
 int32_t		WStr1FindCHs(const wstr1* str, const wch* pcs, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
 int32_t		WStr1FindCS(const wstr1* str, const wch* pcs, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
@@ -413,6 +408,13 @@ int32_t		WStr1FindReversedCSBy(const wstr1* str, const wch* pcs, size_t s2, size
 int32_t		WStr1FindReversed(const wstr1* str, const wstr1* str2, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
 int32_t		WStr1FindReversedBy(const wstr1* str, const wstr1* str2, size_t s2, size_t len2, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
 int32_t		WStr1FindReversedTmp(const wstr1* str, wstr1 tmp, size_t* pIdx = NULL, size_t pos = 0, size_t* idxRemain = NULL);
+int32_t		WStr1ContainsCH(const wstr1* str, wch c);
+int32_t		WStr1ContainsCHs(const wstr1* str, const wch* pcs);
+int32_t		WStr1ContainsCS(const wstr1* str, const wch* pcs);
+int32_t		WStr1ContainsCSBy(const wstr1* str, const wch* pcs, size_t s2, size_t len2);
+int32_t		WStr1Contains(const wstr1* str, const wstr1* str2);
+int32_t		WStr1ContainsBy(const wstr1* str, const wstr1* str2, size_t s2, size_t len2);
+int32_t		WStr1ContainsTmp(const wstr1* str, wstr1 tmp);
 int32_t		WStr1Replace(const wstr1 str, wstr1* str2f, wstr1* strt, size_t pos = 0);
 int32_t		WStr1ReplaceTmp(const wstr1 str, wstr1 tmp1, wstr1 tmp2, size_t pos = 0);
 int32_t		WStr1ReplaceCS(const wstr1 str, const wch* pcs1, const wch* pcs2, size_t pos = 0);

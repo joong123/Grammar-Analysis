@@ -28,6 +28,9 @@ typedef int* it0int;
 
 int main()
 {
+    TestList();
+    TestPtrMap1();
+
     // "in", "out", "xx", "xxx"
     const char* const Col1Item1 = "in";
     const char* const Col1Item2 = "out";

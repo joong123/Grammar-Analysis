@@ -16,8 +16,15 @@
 #define ABS(n)			(((n) < (0)) ? (-(n)) : (n))
 #endif
 
-#ifndef ISNULL
+#ifndef ISNULLPTR
 #define ISNULLPTR(ptr)		(NULL == (ptr))
+#endif
+#ifndef ISNOTNULLPTR
+#define ISNOTNULLPTR(ptr)	(NULL != (ptr))
+#endif
+
+#ifndef SAFECALL1
+#define SAFECALL1(fun, param1)	if (NULL != (fun)) fun(param1)
 #endif
 
 #define SET_PTRVAL(PTR, VAL)	if (NULL != (PTR)) *(PTR) = (VAL);
@@ -44,6 +51,7 @@ enum G_RET
 	GRET_INVMETA	= -8,
 	GRET_DUPKEY		= -9,
 	GRET_INVIDX		= -10,
+	GRET_NULLFUNC	= -11,
 
 	GRET_NOTFOUND	= -100,
 
@@ -56,4 +64,16 @@ inline void safefree(void* ptr)
 {
 	if (ptr)
 		free(ptr);
+}
+
+inline void safefreeandreset(void** pptr)
+{
+	if (pptr)
+	{
+		if (*pptr)
+		{
+			free(*pptr);
+			*pptr = NULL;
+		}
+	}
 }

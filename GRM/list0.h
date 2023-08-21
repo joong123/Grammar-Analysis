@@ -62,7 +62,7 @@ typedef struct list0info
 {
 	size_t						size;
 
-	//funLS0ElemEquals			fEqualsKey;\
+	funLS0ElemEquals			fEquals;
 
 	funLS0ElemConstructorDef	fConstructorDef;
 	funLS0ElemDestructor		fDestructor;
@@ -71,6 +71,19 @@ typedef struct list0info
 	funLS0ElemMoveConstructor	fConstructorMove;
 	funLS0ElemAssignMove		fAssignMove;
 } list0info;
+typedef struct ptrlist0info
+{
+	size_t						size;
+
+	funPLS0ElemEquals			fEquals;
+
+	funPLS0ElemConstructorDef	fConstructorDef;
+	funPLS0ElemDestructor		fDestructor;
+	funPLS0ElemCopyConstructor	fConstructorCopy;
+	funPLS0ElemAssignCopy		fAssignCopy;
+	funPLS0ElemMoveConstructor	fConstructorMove;
+	funPLS0ElemAssignMove		fAssignMove;
+} ptrlist0info;
 
 void InitList0Info(list0info* const pinfo);
 
@@ -92,7 +105,7 @@ typedef struct ptrlist1
 	size_t		len;
 	size_t		cap;
 
-	list0info	info;
+	ptrlist0info	info;
 } plist1;
 
 
@@ -233,31 +246,24 @@ int32_t			List0Detach(list0 ls);
 #define LIST1POS(pls, idx)		((void*)((char*)(pls)->ptr + (pls)->info.size * idx))
 
 
-inline void		_ListMemMoveTo(list1* const pls, size_t from, size_t to, size_t len)
-{
-	memmove(LIST1POS(pls, to), LIST1POS(pls, from), len * pls->info.size);
-}
-inline void		_List1AddCopy(list1* const pls, size_t idx, void* pElem)
-{
-	if (NULL != pls->info.fConstructorCopy)
-		pls->info.fConstructorCopy(pElem, LIST1POS(pls, idx));
-	else
-		memmove(LIST1POS(pls, pls->len), pElem, pls->info.size);
-}
-inline void		_List1AddMove(list1* const pls, size_t idx, void* pElem)
-{
-	if (NULL != pls->info.fConstructorMove)
-		pls->info.fConstructorMove(pElem, LIST1POS(pls, idx));
-	else
-	{
-		memmove(LIST1POS(pls, pls->len), pElem, pls->info.size);
-		memset(pElem, 0, pls->info.size);
-	}
-}
+inline void		_List1MoveTo(list1* const pls, size_t from, size_t to, size_t len);
+inline void		_List1MoveToBuf(list1* const pls, size_t from, void* pDst, size_t to, size_t len);
+inline void		_List1MoveFromBuf(list1* const pls, size_t to, void* pSrc, size_t from, size_t len);
+inline void		_List1CopyToList(list1* const pls, size_t from, list1* const pls2, size_t to, size_t len);
+inline void		_List1Make(list1* const pls, size_t from, size_t num);
+inline void		_List1Clear(list1* const pls, size_t from, size_t num);
+inline void		_List1MakeAtCopy(list1* const pls, size_t idx, void* pElem);
+inline void		_List1MakeAtMove(list1* const pls, size_t idx, void* pElem);
+inline void		_List1SetAtCopy(list1* const pls, size_t idx, void* pElem);
+inline void		_List1SetAtMove(list1* const pls, size_t idx, void* pElem);
+inline void		_List1GetAtCopy(list1* const pls, size_t idx, void* pElem);
+inline void		_List1GetAtMove(list1* const pls, size_t idx, void* pElem);
 
 void			List1Init(list1* const pls);
-int32_t			List1Make(list1* const pls, size_t size, list0info* const pinfo = NULL);
-int32_t			List1MakeBy(list1* const pls, size_t cap, size_t size, list0info* const pinfo = NULL);
+int32_t			List1Make(list1* const pls, size_t size, const list0info* const pinfo = NULL);
+int32_t			List1MakePure(list1* const pls, size_t size, const list0info* const pinfo = NULL);
+int32_t			List1MakeBy(list1* const pls, size_t cap, size_t size, const list0info* const pinfo = NULL);
+int32_t			List1MakeByPure(list1* const ls, size_t cap, size_t size, const list0info* const pinfo = NULL);
 int32_t			List1Clear(list1* const pls);
 int32_t			List1Abandon(list1* const pls);
 int32_t			List1Release(list1* const pls);
@@ -268,16 +274,15 @@ int32_t			List1Add(list1* const pls, void* pElem);
 int32_t			List1AddMove(list1* const pls, void* pElem);
 int32_t			List1AddFront(list1* const pls, void* pElem);
 int32_t			List1AddFrontMove(list1* const pls, void* pElem);
+int32_t			_List1RemoveIn(list1* const pls, size_t idx, size_t num);
 int32_t			List1RemoveAt(list1* const pls, size_t idx);
-int32_t			List1RemoveFront(list1* const pls);
-int32_t			List1RemoveBack(list1* const pls);
-int32_t			List1RemoveIn(list1* const pls, size_t idx, size_t len);
+int32_t			List1RemoveFront(list1* const pls, size_t num = 1);
+int32_t			List1RemoveBack(list1* const pls, size_t num = 1);
+int32_t			List1RemoveIn(list1* const pls, size_t idx, size_t num);
 int32_t			List1RemoveFrom(list1* const pls, size_t idx);
 int32_t			List1PopAt(list1* const pls, size_t idx, void* pElem);
 int32_t			List1PopFront(list1* const pls, void* pElem);
 int32_t			List1PopBack(list1* const pls, void* pElem);
-//int32_t		List1PopIn(list1* const pls, size_t idx, size_t len);
-//int32_t		List1PopFrom(list1* const pls, size_t idx);
 int32_t			List1Insert(list1* const pls, void* pElem, size_t idx);
 int32_t			List1InsertMove(list1* const pls, void* pElem, size_t idx);
 int32_t			List1GetAt(list1* const pls, size_t idx, void* pElem);
@@ -285,61 +290,121 @@ int32_t			List1GetFront(list1* const pls, void* pElem);
 int32_t			List1GetBack(list1* const pls, void* pElem);
 int32_t			List1SetAt(list1* const pls, void* pElem, size_t idx);
 int32_t			List1SetAtMove(list1* const pls, void* pElem, size_t idx);
-int32_t			List1SetFront(list1* const pls, void* pElem, size_t idx);
-int32_t			List1SetFrontMove(list1* const pls, void* pElem, size_t idx);
-int32_t			List1SetBack(list1* const pls, void* pElem, size_t idx);
-int32_t			List1SetBackMove(list1* const pls, void* pElem, size_t idx);
-int32_t			List1FindFirst(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe);
-int32_t			List1FindLast(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe);
-
-//
-//int32_t		List1Where(list1* const pls, list1* plsr, funLS0ElemSatisfy fs);
-//int32_t		List1Where(list1* const pls, ptrlist0* plsr, funLS0ElemSatisfy fs);
+int32_t			List1SetFront(list1* const pls, void* pElem);
+int32_t			List1SetFrontMove(list1* const pls, void* pElem);
+int32_t			List1SetBack(list1* const pls, void* pElem);
+int32_t			List1SetBackMove(list1* const pls, void* pElem);
+int32_t			List1FindFirst(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe = NULL);
+int32_t			List1FindLast(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe = NULL);
 
 // capacity
-int32_t			List1ExtendBy(list1* const pls, size_t dCap);
-int32_t			_List1TryDLenExtend(list1* const pls, size_t dLen);
+int32_t			_List1ExtendDLen(list1* const pls, size_t dLen);
 int32_t			_List1ReCap(list1* const pls, size_t cap);
 int32_t			List1ReCap(list1* const pls, size_t cap);
 int32_t			List1ReLen(list1* const pls, size_t len);
 
 // list
-int32_t			List1Copy(list1* const pls, list0* const plsr);
-int32_t			List1DeepCopy(list1* const pls, list0* const plsr, funLS0ElemAssignCopy fd);
-int32_t			List1Move(list1* const pls, list0* const plsr, funLS0ElemAssignMove fd);
-int32_t			List1Swap(list1* const pls, list0* const plsr, funLS0ElemSwap fd);
-int32_t			List1Cat(list1* const pls, list1* const pls2);
-int32_t			List1CatMove(list1* const pls, list1* const pls2);
-int32_t			List1InsertLs(list1* const pls, list1* const pls2, size_t idx);
-int32_t			List1InsertLsMove(list1* const pls, list1* const pls2, size_t idx);
+int32_t			List1MakeType(list1* const pls, const list1* const plsf);
+int32_t			List1MakeTypeBy(list1* const pls, const list1* const plsf, size_t cap);
+int32_t			List1CopyTo(list1* const pls, list1* const plsr);
+//int32_t			List1Copy(list1* const pls, list1* const plsr, funLS0ElemAssignCopy fd);
+int32_t			List1MoveTo(list1* const pls, list1* const plsr);
+//int32_t			List1Move(list1* const pls, list1* const plsr, funLS0ElemAssignMove fd);
+int32_t			List1Swap(list1* const pls, list1* const plsr);
+//int32_t			List1Swap(list1* const pls, list1* const plsr, funLS0ElemSwap fd);
+int32_t			List1CatList(list1* const pls, list1* const pls2);
+int32_t			List1CatListMove(list1* const pls, list1* const pls2);
+int32_t			List1InsertList(list1* const pls, list1* const pls2, size_t idx);
+int32_t			List1InsertListMove(list1* const pls, list1* const pls2, size_t idx);
 //int32_t		List1Attach(list1* const pls, list1* const pls2);
 //int32_t		List1Detach(list1* const pls);
 
 #pragma endregion list1
 
+#define LIST1MAKE(pls, type) List1Make((pls), sizeof(type));
+#define LIST1MAKEPURE(pls, type) List1MakePure((pls), sizeof(type));
+#define LIST1GETAT(pls, idx, item) List1GetAt((pls), (idx), (void*)&(item));
+#define LIST1ADD(pls, item) List1Add((pls), (void*)&(item));
 
-#pragma region ptrlist0
-
-#define PLIST0ADDR(ls, idx)		((decltype(ls))(_LIST0ELEMADDR(ls)) + (idx)*sizeof(ptrlist0elem0))
-
-
-ptrlist0 PtrList0Make();
-ptrlist0 PtrList0MakeBy(size_t cap);
-
-#pragma endregion ptrlist0
 
 
 #pragma region ptrlist1
 
-int32_t			PtrList1Make(ptrlist1* const ls);
-int32_t			PtrList1MakeBy(ptrlist1* const ls, size_t cap, size_t len = 0);
-int32_t			PtrList1MakeByPure(ptrlist1* const ls, size_t cap, size_t len = 0);
-int32_t			PtrList1Release(ptrlist1* const ls);
+#define PTRLIST1POS(pls, idx)		((void**)((char*)(pls)->ptr + idx * sizeof(void*)))
+#define PTRLIST1AT(pls, idx)		(*(PTRLIST1POS(pls, idx)))
 
-int32_t			PtrListAdd(ptrlist1* const ls, void* const p);
-int32_t			PtrListInsert(ptrlist1* const ls, void* const p, size_t idx);
-int32_t			PtrListPrepend(ptrlist1* const ls, void* const p);
-int32_t			PtrListRemoveAt(ptrlist1* const ls, size_t idx);
+inline void		_PtrList1MoveTo(ptrlist1* const pls, size_t from, size_t to, size_t len);
+inline void		_PtrList1CopyToList(ptrlist1* const pls, size_t from, ptrlist1* const pls2, size_t to, size_t len);
+inline void		_PtrList1DeepCopyToList(ptrlist1* const pls, size_t from, ptrlist1* const pls2, size_t to, size_t len);
+inline void		_PtrList1Make(ptrlist1* const pls, size_t from, size_t num);
+inline void		_PtrList1Clear(ptrlist1* const pls, size_t from, size_t num);
+int32_t			_PtrList1DeepCopy(ptrlist1* const pls, void* pElem, void** ppElemCopy);
+
+void			PtrList1Init(ptrlist1* const pls);
+int32_t			PtrList1Make(ptrlist1* const pls, const ptrlist0info* const pinfo = NULL);
+int32_t			PtrList1MakeBy(ptrlist1* const pls, size_t cap, const ptrlist0info* const pinfo = NULL);
+int32_t			PtrList1MakeByPure(ptrlist1* const pls, size_t cap, const ptrlist0info* const pinfo = NULL);
+int32_t			PtrList1Clear(ptrlist1* const pls);
+int32_t			PtrList1Abandon(ptrlist1* const pls);
+int32_t			PtrList1Release(ptrlist1* const pls);
+int32_t			PtrList1ReleaseAbandon(ptrlist1* const pls);
+
+int32_t			PtrList1Add(ptrlist1* const ls, void* const p);
+int32_t			PtrList1AddDeepCopy(ptrlist1* const pls, void* pElem);
+int32_t			PtrList1AddFront(ptrlist1* const ls, void* const p);
+int32_t			PtrList1AddFrontDeepCopy(ptrlist1* const pls, void* pElem);
+int32_t			_PtrList1RemoveIn(ptrlist1* const pls, size_t idx, size_t num);
+int32_t			PtrList1RemoveAt(ptrlist1* const pls, size_t idx);
+int32_t			PtrList1RemoveFront(ptrlist1* const pls, size_t num = 1);
+int32_t			PtrList1RemoveBack(ptrlist1* const pls, size_t num = 1);
+int32_t			PtrList1RemoveIn(ptrlist1* const pls, size_t idx, size_t num);
+int32_t			PtrList1RemoveFrom(ptrlist1* const pls, size_t idx);
+int32_t			PtrList1PopAt(ptrlist1* const pls, size_t idx, void** pElem);
+int32_t			PtrList1PopFront(ptrlist1* const pls, void** pElem);
+int32_t			PtrList1PopBack(ptrlist1* const pls, void** pElem);
+int32_t			PtrList1Insert(ptrlist1* const ls, void* const p, size_t idx);
+int32_t			PtrList1InsertDeepCopy(ptrlist1* const ls, void* const p, size_t idx);
+int32_t			PtrList1GetAt(ptrlist1* const pls, size_t idx, void** pElem);
+int32_t			PtrList1GetFront(ptrlist1* const pls, void** pElem);
+int32_t			PtrList1GetBack(ptrlist1* const pls, void** pElem);
+int32_t			PtrList1SetAt(ptrlist1* const pls, void* pElem, size_t idx);
+int32_t			PtrList1SetAtDeepCopy(ptrlist1* const pls, void* pElem, size_t idx);
+int32_t			PtrList1SetFront(ptrlist1* const pls, void* pElem);
+int32_t			PtrList1SetBack(ptrlist1* const pls, void* pElem);
+int32_t			PtrList1SetBackDeepCopy(ptrlist1* const pls, void* pElem);
+int32_t			PtrList1FindFirst(ptrlist1* const pls, void* pElem, size_t* pIdx, funPLS0ElemEquals fe);
+int32_t			PtrList1FindLast(ptrlist1* const pls, void* pElem, size_t* pIdx, funPLS0ElemEquals fe);
+
+int32_t			_PtrList1ExtendDLen(ptrlist1* const pls, size_t dLen);
+int32_t			_PtrList1ReCap(ptrlist1* const pls, size_t cap);
+int32_t			PtrList1ReCap(ptrlist1* const pls, size_t cap);
+int32_t			PtrList1ReLen(ptrlist1* const pls, size_t len);
+
+// list
+int32_t			PtrList1CopyTo(ptrlist1* const pls, ptrlist1* const plsr);
+int32_t			PtrList1DeepCopyTo(ptrlist1* const pls, ptrlist1* const plsr);
+//int32_t			PtrList1Copy(ptrlist1* const pls, ptrlist1* const plsr, funLS0ElemAssignCopy fd);
+int32_t			PtrList1MoveTo(ptrlist1* const pls, ptrlist1* const plsr);
+//int32_t			List1Move(ptrlist1* const pls, ptrlist1* const plsr, funLS0ElemAssignMove fd);
+int32_t			PtrList1Swap(ptrlist1* const pls, ptrlist1* const plsr);
+//int32_t			PtrList1Swap(ptrlist1* const pls, ptrlist1* const plsr, funLS0ElemSwap fd);
+int32_t			PtrList1CatList(ptrlist1* const pls, ptrlist1* const pls2);
+int32_t			PtrList1CatListDeepCopy(ptrlist1* const pls, ptrlist1* const pls2);
+int32_t			PtrList1InsertList(ptrlist1* const pls, ptrlist1* const pls2, size_t idx);
+int32_t			PtrList1InsertListDeepCopy(ptrlist1* const pls, ptrlist1* const pls2, size_t idx);
+//int32_t		PtrList1Attach(ptrlist1* const pls, ptrlist1* const pls2);
+//int32_t		PtrList1Detach(ptrlist1* const pls);
 
 #pragma endregion ptrlist1
 
+inline void TestList()
+{
+	list1 ls0;
+	int ret = LIST1MAKE(&ls0, int);
+
+	int item = 123;
+	ret = LIST1ADD(&ls0, item);
+	item = 454;
+	ret = LIST1ADD(&ls0, item);
+	ret = LIST1GETAT(&ls0, 0, item);
+}
