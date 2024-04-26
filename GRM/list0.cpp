@@ -4,6 +4,11 @@
 #include <wchar.h>
 #include "def0.h"
 
+
+const size_t sizeList0 = sizeof(list0);
+const size_t sizeList1 = sizeof(list1);
+const size_t sizeList2 = sizeof(list2);
+
 void InitList0Info(list0info* const pInfo)
 {
 	if (ISNOTNULLPTR(pInfo))
@@ -33,385 +38,547 @@ void InitPtrList0Info(ptrlist0info* const pInfo)
 	}
 }
 
-int32_t List0Len(clist0c ls, size_t* pLen)
+int32_t ListExtendDLen(const size_t len, const size_t dlen, size_t* const cap)
+{
+	const size_t lenNew = len + dlen;
+	if (lenNew < len)
+		return GRET_OVERFLOW;
+	if (lenNew <= *cap)
+		return GRET_SUCCEED;
+	*cap = max(lenNew, (*cap) * 2);
+	return GRET_SUCCEED;
+}
+
+
+#pragma region list0
+
+int32_t List0Len(clist0c ls, size_t* const pLen)
 {
 	if (LIST0ISNOTNULL(ls) && ISNOTNULLPTR(pLen))
 	{
 		*pLen = LIST0LEN(ls);
-		return 1;
+		return GRET_SUCCEED;
 	}
 	else
-		return -1;
+		return GRET_NULL;
 }
 
-int32_t List0Cap(clist0c ls, size_t* pCap)
+int32_t List0Cap(clist0c ls, size_t* const pCap)
 {
 	if (LIST0ISNOTNULL(ls) && ISNOTNULLPTR(pCap))
 	{
 		*pCap = LIST0CAP(ls);
-		return 1;
+		return GRET_SUCCEED;
 	}
 	else
-		return -1;
+		return GRET_NULL;
 }
 
-int32_t List0Status(clist0c ls, CTNSTATUS* pStatus)
+int32_t List0Status(clist0c ls, CTNSTATUS* const pStatus)
 {
 	if (ISNOTNULLPTR(ls) && ISNOTNULLPTR(pStatus))
 	{
 		*pStatus = (LIST0STATUS(ls));
-		return 1;
+		return GRET_SUCCEED;
 	}
 	else
-		return -1;
+		return GRET_NULL;
 }
 
-int32_t List0SetStatus(clist0c ls, CTNSTATUS status)
+int32_t List0SetStatus(clist0c ls, const CTNSTATUS status)
 {
 	if (ISNOTNULLPTR(ls))
 	{
 		LIST0_SETSTATUS(ls, status);
-		return 1;
+		return GRET_SUCCEED;
 	}
 	else
-		return -1;
+		return GRET_NULL;
 }
 
-list0 _List0Make(size_t size)
+list0 _List0Make(const size_t size)
 {
 	return _List0MakeBy(LIST0INITCAP, size);
 }
 
-list0 _List0MakeBy(size_t cap, size_t size)
+list0 _List0MakeBy(const size_t cap, const size_t size)
 {
 	if (cap < 0)
 		return NULL;
-
-	list0 ls = LIST0MALLOC(cap, size);
+	list0c ls = LIST0MALLOC(cap, size);
 	if (ISNULLPTR(ls))
 		return NULL;
 	LIST0_SETLENCAPSTATUS(ls, 0, cap, CTNSTATUS::CTNS_OWN);
-
 	return ls;
 }
 
-int32_t _List0Add(list0* pls, void* pElem, size_t size)
+int32_t _List0MakePure(list0* const pls, const size_t size)
+{
+	return _List0MakeByPure(pls, LIST0INITCAP, size);
+}
+
+int32_t _List0MakeByPure(list0* const pls, const size_t cap, const size_t size)
 {
 	if (ISNULLPTR(pls))
-		return -1;
+		return GRET_NULL;
+	if (cap < 0)
+		return GRET_INVARG;
+	list0c ls = LIST0MALLOC(cap, size);
+	if (ISNULLPTR(ls))
+		return GRET_MALLOC;
+	LIST0_SETLENCAPSTATUS(ls, 0, cap, CTNSTATUS::CTNS_OWN);
+	*pls = ls;
+	return GRET_SUCCEED;
+}
 
+int32_t _List0Add(list0* const pls, void* const pElem, const size_t size)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
 	list0 ls = *pls;
 	if (LIST0ISNULLP(ls))
-		return -2;
-
+		return GRET_NULL;
 	if (ISNULLPTR(pElem))
-		return -3;
-
+		return GRET_NULLARG;
 	//if (size <= 0)// TODO: do not need, validate with macro
-	//	return -4;
+	//	return GRET_INVARG;
 
-	const int32_t ret = __List0TryExtendBy(&ls, 1, size);
-	if (ret < 0)
-		return ret;
+	const int32_t ret = __List0ExtendBy(pls, 1, size);
+	RET_ON_NEG(ret);
 	ls = *pls;
 
 	const size_t lenOld = LIST0LEN(ls);
-	LIST0LEN(ls) = lenOld + 1;
 	memcpy(_LIST0ADDR(ls, lenOld, size), pElem, size);
-
-	return 1;
+	LIST0LEN(ls) = lenOld + 1;
+	return GRET_SUCCEED;
 }
 
-int32_t _List0SetAt(list0c ls, void* pElem, size_t idx, size_t size)
+int32_t _List0SetAt(list0c ls, void* const pElem, const size_t idx, const size_t size)
 {
-	if (LIST0ISNULLP(ls))
-		return -1;
-
+	if (ISNULLPTR(ls))
+		return GRET_NULL;
+	if (LIST0ISNULL(ls))
+		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
-		return -3;
-
+		return GRET_NULLARG;
 	if (idx < 0 || idx >= LIST0LEN(ls))
-		return -4;
+		return GRET_INVIDX;
 
 	memcpy(_LIST0ADDR(ls, idx, size), pElem, size);
-
-	return 1;
+	return GRET_SUCCEED;
 }
 
 int32_t List0Clear(clist0c ls)
 {
-	if (LIST0ISNULLP(ls))
-		return -1;
+	if (ISNULLPTR(ls))
+		return GRET_NULL;
+	if (LIST0ISNULL(ls))
+		return GRET_INVSTATUS;
 
 	if (LIST0ISEMPTY(ls))
-		return 0;
-
+		return GRET_NONE;
 	LIST0LEN(ls) = 0;
-
-	return 1;
+	return GRET_SUCCEED;
 }
 
-int32_t _List0Copy(clist0c ls, list0* const plsr, size_t size)
+int32_t _List0Copy(clist0c ls, list0* const plsr, const size_t size)
 {
-	if (LIST0ISNULLP(ls) || ISNULLPTR(plsr))
-		return -1;
+	if (ISNULLPTR(ls))
+		return GRET_NULL;
+	if (LIST0ISNULL(ls))
+		return GRET_INVSTATUS;
+	if (ISNULLPTR(plsr))
+		return GRET_NULLARG;
 
 	const size_t cap = LIST0CAP(ls);
-	list0 ls2 = _List0MakeBy(cap, size);
-	if (ISNULLPTR(ls2))
-		return -1;
+	list0 ls2 = NULL;
+	const int32_t ret = _List0MakeByPure(&ls2, cap, size);
+	RET_ON_NEG(ret);
 
 	const size_t len = LIST0LEN(ls);
 	memcpy(LIST0ELEMADDR(ls2), LIST0ELEMADDR(ls), len * size);
-
 	*plsr = ls2;
-
-	return 1;
+	return GRET_SUCCEED;
 }
 
-int32_t _List0ExtendBy(list0* const pls, size_t dCap, size_t size)
+int32_t _List0ExtendBy(list0* const pls, const size_t dLen, const size_t size)
 {
 	if (ISNULLPTR(pls))
-		return -1;
-
-	list0 ls = *pls;
+		return GRET_NULL;
+	clist0c ls = *pls;
 	if (LIST0ISNULLP(ls))
-		return -1;
+		return GRET_INVSTATUS;
+	return __List0ExtendBy(pls, dLen, size);
+}
 
-	const size_t cap = LIST0CAP(ls);
-	size_t capNew = cap + dCap;
-	if (capNew <= cap)// should extend
-		return -2;
-
-	const size_t capNew2 = (size_t)(cap * LIST0EXTENDRATE);
-	capNew = max(capNew, capNew2);
-
+int32_t __List0ExtendBy(list0* const pls, const size_t dLen, const size_t size)
+{
+	clist0c ls = *pls;
+	size_t capNew = LIST0CAP(ls);
+	const int32_t ret = ListExtendDLen(LIST0LEN(ls), dLen, &capNew);
+	RET_ON_NPOS(ret);
 	return __List0ReCap(pls, capNew, size);
 }
 
-int32_t __List0TryExtendBy(list0* pls, size_t len, size_t size)
+int32_t __List0ReCap(list0* const pls, const size_t cap, const size_t size)
 {
-	list0 ls = *pls;
-
-	const size_t lenOld = LIST0LEN(ls);
-	size_t lenNew = lenOld + len;
-	if (lenNew <= lenOld)// should extend
-		return -2;
-
-	const size_t cap = LIST0CAP(ls);
-	if (lenNew > cap)
-	{
-		return __List0ReCap(pls, lenNew, size);
-	}
-
-	return 0;
-}
-
-int32_t __List0ReCap(list0* const pls, size_t cap, size_t size)
-{
-	list0 ls = LIST0REALLOC(*pls, cap, size);
+	list0c ls = LIST0REALLOC(*pls, cap, size);
 	if (ISNULLPTR(ls))
-		return -3;
+		return GRET_MALLOC;
 	*pls = ls;
-	return 1;
+	return GRET_SUCCEED;
 }
 
 int32_t List0Release(list0c ls)
 {
 	if (ISNULLPTR(ls))
-		return 0;
+		return GRET_NONE;
 
 	const CTNSTATUS status = LIST0STATUS(ls);
 	switch (status)
 	{
 	case CTNSTATUS::CTNS_NULL:
-		return 0;
+		return GRET_NONE;
 	case CTNSTATUS::CTNS_OWN:
 	case CTNSTATUS::CTNS_REF:
 		//LIST0_SETSTATUS(ls, CTNSTATUS::CTNS_NULL);
 		free(ls);
-		return 1;
+		return GRET_SUCCEED;
 	default:
-		return 0;
+		return GRET_NONE;
 	}
-
-	return 0;
+	return GRET_NONE;
 }
+
+#pragma endregion list0
+
 
 #pragma region list1
 
-static const size_t szList1 = sizeof(list1);
+int32_t _List1ExtendDLen(list1* const pls, const size_t dLen)
+{
+	size_t capNew = pls->cap;
+	const int32_t ret = ListExtendDLen(pls->len, dLen, &capNew);
+	RET_ON_NPOS(ret);
+	return _List1ReCap(pls, capNew);
+}
 
-void _List1MoveTo(list1* const pls, size_t from, size_t to, size_t len)
+int32_t _List1ReCap(list1* const pls, const size_t cap)
+{
+	if (OVERFLOW_MUL_sizet(cap, pls->szData))
+		return GRET_OVERFLOW;
+	void* const ptr = realloc(pls->ptr, cap * pls->szData);
+	if (ISNULLPTR(ptr))
+		return GRET_MALLOC;
+	pls->ptr = ptr;
+	pls->cap = cap;
+	return GRET_SUCCEED;
+}
+
+void List1Init0(list1* const pls)
+{
+	if (ISNOTNULLPTR(pls))
+	{
+		pls->ptr	= NULL;
+		pls->len	= 0;
+		pls->cap	= 0;
+		pls->szData	= 0;
+	}
+}
+
+int32_t List1Make(list1* const pls, const size_t size)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (size <= 0)
+		return GRET_INVARG;
+	List1Release(pls);
+	return List1MakePure(pls, size);
+}
+
+int32_t List1MakePure(list1* const pls, const size_t size)
+{
+	return List1MakePureBy(pls, LIST0INITCAP, size);
+}
+
+int32_t List1MakePureBy(list1* const pls, const size_t cap, const size_t size)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (size <= 0)
+		return GRET_INVARG;
+
+	List1Init0(pls);
+	if (OVERFLOW_MUL_sizet(cap, size))
+		return GRET_OVERFLOW;
+	void* const ptr = malloc(cap * size);
+	if (ISNULLPTR(ptr))
+		return GRET_MALLOC;
+	//memset(ptr, 0, cap * sizeof(size));
+	pls->ptr	= ptr;
+	pls->cap	= cap;
+	pls->szData	= size;
+	return GRET_SUCCEED;
+}
+
+int32_t List1From(list1* const pls, const size_t size, void* const pls2, const size_t len)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (size <= 0)
+		return GRET_INVARG;
+	if (ISNULLPTR(pls2))
+		return GRET_NULLARG;
+	if (len <= 0)
+		return GRET_INVARG;
+	List1Release(pls);
+	return _List1FromPure(pls, size, pls2, len);
+}
+
+int32_t List1FromPure(list1* const pls, const size_t size, void* const pls2, const size_t len)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (size <= 0)
+		return GRET_INVARG;
+	if (ISNULLPTR(pls2))
+		return GRET_NULLARG;
+	if (len <= 0)
+		return GRET_INVARG;
+	return _List1FromPure(pls, size, pls2, len);
+}
+
+int32_t _List1FromPure(list1* const pls, const size_t size, void* const pls2, const size_t len)
+{
+	List1Init0(pls);
+	pls->ptr = pls2;
+	pls->len = pls->cap = len;
+	pls->szData = size;
+	return GRET_SUCCEED;
+}
+
+int32_t List1Add(list1* const pls, void* const pElem)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (NULL == pElem)
+		return GRET_NULL;
+	const int32_t ret = _List1ExtendDLen(pls, 1);
+	RET_ON_NEG(ret);
+	memcpy(LISTPOS(pls->ptr, pls->len, pls->szData), pElem, pls->szData);
+	pls->len++;
+	return GRET_SUCCEED;
+}
+
+int32_t List1Clear(list1* const pls)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	//if (0 == pls->len)
+	//	return GRET_NONE;
+	pls->len = 0;
+	return GRET_SUCCEED;
+}
+
+int32_t List1ClearFree(list1* const pls, const funFreeElem funFree)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (ISNULLPTR(funFree))
+		return GRET_NULL;
+	//if (0 == pls->len)
+	//	return GRET_NONE;
+	for (size_t i = 0; i < pls->len; ++i)
+		const int32_t ret = funFree(LISTPOS(pls->ptr, i, pls->szData));
+	//memset(pls->ptr, 0, pls->len * sizeof(pls->szData));
+	pls->len = 0;
+	return GRET_SUCCEED;
+}
+
+int32_t List1Release(list1* const pls)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	safefreereset(&(pls->ptr));
+	List1Init0(pls);
+	return GRET_SUCCEED;
+}
+
+#pragma endregion list1
+
+
+#pragma region list2
+
+void _List2MoveTo(list2* const pls, const size_t from, const size_t to, const size_t len)
 {
 	const funLS0ElemMoveConstructor fMoveCtor = pls->info.fConstructorMove;
 	if (ISNOTNULLPTR(fMoveCtor))
 	{
-		void* const plsf0 = LIST1POS(pls, from);
-		void* const plst0 = LIST1POS(pls, to);
+		void* const plsf0 = LIST2POS(pls, from);
+		void* const plst0 = LIST2POS(pls, to);
 		if (plsf0 > plst0)
 		{
 			for (size_t i = 0; i < len; ++i)
-				fMoveCtor(LIST1POS(pls, to + i), LIST1POS(pls, from + i));
+				fMoveCtor(LIST2POS(pls, to + i), LIST2POS(pls, from + i));
 		}
 		else
 		{
 			size_t i = len;
 			while (i-- > 0)
-				fMoveCtor(LIST1POS(pls, to + i), LIST1POS(pls, from + i));
+				fMoveCtor(LIST2POS(pls, to + i), LIST2POS(pls, from + i));
 		}
 	}
 	else
 	{
-		memmove(LIST1POS(pls, to), LIST1POS(pls, from), len * pls->info.size);
+		memmove(LIST2POS(pls, to), LIST2POS(pls, from), len * pls->info.sizeUnit);
 	}
 }
-inline void _List1MoveToBuf(list1* const pls, size_t from, void* pDst, size_t to, size_t len)
+inline void _List2MoveToBuf(list2* const pls, const size_t from, void* const pDst, const size_t to, const size_t len)
 {
 	const funLS0ElemMoveConstructor fMoveCtor = pls->info.fConstructorMove;
-	void* const plst0 = (void*)((char*)pDst + to * pls->info.size);
+	void* const plst0 = (void*)((char*)pDst + to * pls->info.sizeUnit);
 	if (ISNOTNULLPTR(fMoveCtor))
 	{
-		void* const plsf0 = LIST1POS(pls, from);
+		void* const plsf0 = LIST2POS(pls, from);
 		if (plsf0 > plst0)
 		{
 			for (size_t i = 0; i < len; ++i)
-				fMoveCtor((char*)pDst + (to + i) * pls->info.size, LIST1POS(pls, from + i));
+				fMoveCtor((char*)pDst + (to + i) * pls->info.sizeUnit, LIST2POS(pls, from + i));
 		}
 		else
 		{
 			for (size_t i = len; i-- > 0;)
-				fMoveCtor((char*)pDst + (to + i) * pls->info.size, LIST1POS(pls, from + i));
+				fMoveCtor((char*)pDst + (to + i) * pls->info.sizeUnit, LIST2POS(pls, from + i));
 		}
 	}
 	else
 	{
-		memmove(plst0, LIST1POS(pls, from), len * pls->info.size);
+		memmove(plst0, LIST2POS(pls, from), len * pls->info.sizeUnit);
 	}
 }
 
-inline void _List1MoveFromBuf(list1* const pls, size_t to, void* pSrc, size_t from, size_t len)
+inline void _List2MoveFromBuf(list2* const pls, const size_t to, void* const pSrc, const size_t from, const size_t len)
 {
 	const funLS0ElemMoveConstructor fMoveCtor = pls->info.fConstructorMove;
-	void* const plsf0 = (void*)((char*)pSrc + from * pls->info.size);
+	void* const plsf0 = (void*)((char*)pSrc + from * pls->info.sizeUnit);
 	if (ISNOTNULLPTR(fMoveCtor))
 	{
-		void* const plst0 = LIST1POS(pls, to);
+		void* const plst0 = LIST2POS(pls, to);
 		if (plsf0 > plst0)
 		{
 			for (size_t i = 0; i < len; ++i)
-				fMoveCtor(LIST1POS(pls, to + i), (char*)pSrc + (from + i) * pls->info.size);
+				fMoveCtor(LIST2POS(pls, to + i), (char*)pSrc + (from + i) * pls->info.sizeUnit);
 		}
 		else
 		{
 			for (size_t i = len; i-- > 0;)
-				fMoveCtor(LIST1POS(pls, to + i), (char*)pSrc + (from + i) * pls->info.size);
+				fMoveCtor(LIST2POS(pls, to + i), (char*)pSrc + (from + i) * pls->info.sizeUnit);
 		}
 	}
 	else
 	{
-		memmove(LIST1POS(pls, to), plsf0, len * pls->info.size);
+		memmove(LIST2POS(pls, to), plsf0, len * pls->info.sizeUnit);
 	}
 }
 
-void _List1CopyToList(list1* const pls, size_t from, list1* const pls2, size_t to, size_t len)
+void _List2CopyToList(list2* const pls, const size_t from, list2* const pls2, const size_t to, const size_t len)
 {
 	const funLS0ElemCopyConstructor fCopyCtor = pls->info.fConstructorCopy;
 	if (ISNOTNULLPTR(fCopyCtor))
 	{
-		void* const plsf0 = LIST1POS(pls, from);
-		void* const plst0 = LIST1POS(pls2, to);
+		void* const plsf0 = LIST2POS(pls, from);
+		void* const plst0 = LIST2POS(pls2, to);
 		if (plsf0 > plst0)
 		{
 			for (size_t i = 0; i < len; ++i)
-				fCopyCtor(LIST1POS(pls2, to + i), LIST1POS(pls, from + i));
+				fCopyCtor(LIST2POS(pls2, to + i), LIST2POS(pls, from + i));
 		}
 		else
 		{
 			for (size_t i = len; i-- > 0;)
-				fCopyCtor(LIST1POS(pls2, to + i), LIST1POS(pls, from + i));
+				fCopyCtor(LIST2POS(pls2, to + i), LIST2POS(pls, from + i));
 		}
 	}
 	else
 	{
-		memmove(LIST1POS(pls2, to), LIST1POS(pls, from), len * pls->info.size);
+		memmove(LIST2POS(pls2, to), LIST2POS(pls, from), len * pls->info.sizeUnit);
 	}
 }
-void _List1Make(list1* const pls, size_t from, size_t num)
+void _List2Make(list2* const pls, const size_t from, const size_t num)
 {
 	const funLS0ElemConstructorDef fCTor = pls->info.fConstructorDef;
 	if (ISNOTNULLPTR(fCTor))
 	{
 		for (size_t idx = from; idx < num; ++idx)
-			fCTor(LIST1POS(pls, idx));
+			fCTor(LIST2POS(pls, idx));
 	}
 	else
 	{
-		memset(LIST1POS(pls, from), 0, num * sizeof(pls->info.size));
+		memset(LIST2POS(pls, from), 0, num * sizeof(pls->info.sizeUnit));
 	}
 }
-void _List1Clear(list1* const pls, size_t from, size_t num)
+void _List2Free(list2* const pls, const size_t from, const size_t num)
 {
 	const funLS0ElemDestructor fDTor = pls->info.fDestructor;
 	if (ISNOTNULLPTR(fDTor))
 	{
 		for (size_t idx = from; idx < num; ++idx)
-			fDTor(LIST1POS(pls, idx));
+			fDTor(LIST2POS(pls, idx));
 	}
 }
-void _List1MakeAtCopy(list1* const pls, size_t idx, void* pElem)
+void _List2MakeAtCopy(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fConstructorCopy))
-		pls->info.fConstructorCopy(pElem, LIST1POS(pls, idx));
+		pls->info.fConstructorCopy(pElem, LIST2POS(pls, idx));
 	else
-		memmove(LIST1POS(pls, idx), pElem, pls->info.size);
+		memmove(LIST2POS(pls, idx), pElem, pls->info.sizeData);
 }
-void _List1MakeAtMove(list1* const pls, size_t idx, void* pElem)
+void _List2MakeAtMove(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fConstructorMove))
-		pls->info.fConstructorMove(pElem, LIST1POS(pls, idx));
+		pls->info.fConstructorMove(pElem, LIST2POS(pls, idx));
 	else
 	{
-		memmove(LIST1POS(pls, idx), pElem, pls->info.size);
-		memset(pElem, 0, pls->info.size);
+		memmove(LIST2POS(pls, idx), pElem, pls->info.sizeData);
+		memset(pElem, 0, pls->info.sizeData);
 	}
 }
-void _List1SetAtCopy(list1* const pls, size_t idx, void* pElem)
+void _List2SetAtCopy(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fAssignCopy))
-		pls->info.fAssignCopy(pElem, LIST1POS(pls, idx));
+		pls->info.fAssignCopy(pElem, LIST2POS(pls, idx));
 	else
-		memmove(LIST1POS(pls, idx), pElem, pls->info.size);
+		memmove(LIST2POS(pls, idx), pElem, pls->info.sizeData);
 }
-void _List1SetAtMove(list1* const pls, size_t idx, void* pElem)
+void _List2SetAtMove(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fAssignMove))
-		pls->info.fAssignMove(pElem, LIST1POS(pls, idx));
+		pls->info.fAssignMove(pElem, LIST2POS(pls, idx));
 	else
 	{
-		memmove(LIST1POS(pls, idx), pElem, pls->info.size);
-		memset(pElem, 0, pls->info.size);
+		memmove(LIST2POS(pls, idx), pElem, pls->info.sizeData);
+		memset(pElem, 0, pls->info.sizeData);
 	}
 }
-void _List1GetAtCopy(list1* const pls, size_t idx, void* pElem)
+void _List2GetAtCopy(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fConstructorCopy))
-		pls->info.fConstructorCopy(LIST1POS(pls, idx), pElem);
+		pls->info.fConstructorCopy(LIST2POS(pls, idx), pElem);
 	else
-		memmove(pElem, LIST1POS(pls, idx), pls->info.size);
+		memmove(pElem, LIST2POS(pls, idx), pls->info.sizeData);
 }
-void _List1GetAtMove(list1* const pls, size_t idx, void* pElem)
+void _List2GetAtMove(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNOTNULLPTR(pls->info.fConstructorMove))
-		pls->info.fConstructorMove(LIST1POS(pls, idx), pElem);
+		pls->info.fConstructorMove(LIST2POS(pls, idx), pElem);
 	else
 	{
-		memmove(pElem, LIST1POS(pls, idx), pls->info.size);
-		memset(LIST1POS(pls, idx), 0, pls->info.size);
+		memmove(pElem, LIST2POS(pls, idx), pls->info.sizeData);
+		memset(LIST2POS(pls, idx), 0, pls->info.sizeData);
 	}
 }
 
-void List1Init(list1* const pls)
+void List2Init0(list2* const pls)
 {
 	if (ISNOTNULLPTR(pls))
 	{
@@ -423,58 +590,67 @@ void List1Init(list1* const pls)
 	}
 }
 
-int32_t List1Make(list1* const pls, size_t size, const list0info* const pinfo)
+int32_t List2Init(list2* const pls, const size_t size, const list0info* const pinfo)
 {
-	return List1MakeBy(pls, LIST0INITCAP, size, pinfo);
+	return List2InitBy(pls, LIST0INITCAP, size, pinfo);
 }
 
-int32_t List1MakePure(list1* const pls, size_t size, const list0info* const pinfo)
+int32_t List2InitPure(list2* const pls, const size_t size, const list0info* const pinfo)
 {
-	return List1MakeByPure(pls, LIST0INITCAP, size, pinfo);
+	return List2InitByPure(pls, LIST0INITCAP, size, pinfo);
 }
 
-int32_t List1MakeBy(list1* const pls, size_t cap, size_t size, const list0info* const pinfo)
+int32_t List2InitBy(list2* const pls, const size_t cap, const size_t size, const list0info* const pinfo)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	List1Clear(pls);
-	return List1MakeByPure(pls, cap, size, pinfo);
+	List2Clear(pls);
+	return List2InitByPure(pls, cap, size, pinfo);
 }
 
-int32_t List1MakeByPure(list1* const ls, size_t cap, size_t size, const list0info* const pinfo)
+int32_t List2InitByPure(list2* const ls, const size_t cap, const size_t size, const list0info* const pinfo)
 {
 	if (ISNULLPTR(ls))
 		return GRET_NULL;
 	if (size <= 0)
 		return GRET_INVARG;
 
-	List1Init(ls);
-	void* ptr = malloc(cap * size);
+	List2Init0(ls);
+	void* const ptr = malloc(cap * size);
 	if (ISNULLPTR(ptr))
 		return GRET_MALLOC;
+	//memset(ptr, 0, cap * size);
 	ls->ptr = ptr;
 	ls->cap = cap;
 	ls->status = CTNSTATUS::CTNS_OWN;
 	if (ISNOTNULLPTR(pinfo))
 		ls->info = *pinfo;
-	ls->info.size = size;
+	ls->info.sizeData = size;
+	const size_t sizeBase = sizeof(void*);
+	ls->info.sizeUnit = (ls->info.sizeData + sizeBase - 1) / sizeBase * sizeBase;
+	if (ls->info.sizeData == 0)
+		return GRET_INVARG;
 	return GRET_SUCCEED;
 }
 
-int32_t List1Clear(list1* const pls)
+int32_t List2Clear(list2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_INVSTATUS;
 
 	switch (pls->status)
 	{
 	case CTNSTATUS::CTNS_OWN:
-		_List1Clear(pls, 0, pls->len);
+		//if (0 == pls->len)
+		//	return GRET_NONE;
+		_List2Free(pls, 0, pls->len);
 		pls->len = 0;
 		return GRET_SUCCEED;
 	case CTNSTATUS::CTNS_REF:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		pls->ptr = NULL;
 		return GRET_SUCCEED;
@@ -486,19 +662,23 @@ int32_t List1Clear(list1* const pls)
 	return GRET_NONE;
 }
 
-int32_t List1Abandon(list1* const pls)
+int32_t List2Abandon(list2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_INVSTATUS;
 
 	switch (pls->status)
 	{
 	case CTNSTATUS::CTNS_OWN:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		return GRET_SUCCEED;
 	case CTNSTATUS::CTNS_REF:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		pls->ptr = NULL;
 		return GRET_SUCCEED;
@@ -510,16 +690,15 @@ int32_t List1Abandon(list1* const pls)
 	return GRET_SUCCEED;
 }
 
-int32_t List1Release(list1* const pls)
+int32_t List2Release(list2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_NONE;
 
-	const int32_t ret = List1Clear(pls);
-	if (ret < 0)
-		return ret;
+	const int32_t ret = List2Clear(pls);
+	RET_ON_NEG(ret);
 
 	const CTNSTATUS status = pls->status;
 	switch (status)
@@ -541,276 +720,327 @@ int32_t List1Release(list1* const pls)
 	return GRET_SUCCEED;
 }
 
-int32_t List1ReleaseAbandon(list1* const pls)
+int32_t List2ReleaseAbandon(list2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_NONE;
-	const int32_t ret = List1Abandon(pls);
-	return List1Release(pls);
+	const int32_t ret = List2Abandon(pls);
+	return List2Release(pls);
 }
 
-int32_t List1Add(list1* const pls, void* pElem)
+void* List2At(list2* const pls, const size_t idx)
+{
+	if (ISNULLPTR(pls))
+		return NULL;
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
+		return NULL;
+	if (idx >= pls->len)
+		return NULL;
+	return LIST2POS(pls, idx);
+}
+
+void* List2Begin(list2* const pls)
+{
+	return List2At(pls, 0);
+}
+
+void* List2End(list2* const pls)
+{
+	if (ISNULLPTR(pls))
+		return NULL;
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
+		return NULL;
+	return LIST2POS(pls, pls->len);
+}
+
+void* List2Next(list2* const pls, void* const pElem)
+{
+	if (ISNULLPTR(pls))
+		return NULL;
+	return (void*)((char*)pElem + pls->info.sizeUnit);
+}
+
+void* List2SafeNext(list2* const pls, void* const pElem)
+{
+	if (ISNULLPTR(pls) || ISNULLPTR(pElem))
+		return NULL;
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
+		return NULL;
+	void* const pBegin = LIST2BEGIN(pls);
+	if (pBegin > pElem)
+		return NULL;
+	const size_t diff = ((char*)pElem - (char*)pBegin);
+	const size_t remain = diff % pls->info.sizeUnit;
+	if (remain != 0)
+		return NULL;
+	const size_t idx = diff / pls->info.sizeUnit;
+	if (idx >= pls->len)
+		return NULL;
+	return (void*)((char*)pElem + pls->info.sizeUnit);
+}
+
+int32_t List2Add(list2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return List1Insert(pls, pElem, pls->len);
+	return List2Insert(pls, pElem, pls->len);
 }
 
-int32_t List1AddMove(list1* const pls, void* pElem)
+int32_t List2AddMove(list2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return List1InsertMove(pls, pElem, pls->len);
+	return List2InsertMove(pls, pElem, pls->len);
 }
 
-int32_t List1AddFront(list1* const pls, void* pElem)
+int32_t List2AddFront(list2* const pls, void* const pElem)
 {
-	return List1Insert(pls, pElem, 0);
+	return List2Insert(pls, pElem, 0);
 }
 
-int32_t List1AddFrontMove(list1* const pls, void* pElem)
+int32_t List2AddFrontMove(list2* const pls, void* const pElem)
 {
-	return List1InsertMove(pls, pElem, 0);
+	return List2InsertMove(pls, pElem, 0);
 }
 
-int32_t _List1RemoveIn(list1* const pls, size_t idx, size_t num)
+int32_t _List2RemoveIn(list2* const pls, const size_t idx, const size_t num)
 {
 	if (idx >= pls->len || num > pls->len - idx)
 		return GRET_INVARG;
-	_List1Clear(pls, idx, num);
-	_List1MoveTo(pls, idx + num, idx, pls->len - idx - num);
+	_List2Free(pls, idx, num);
+	_List2MoveTo(pls, idx + num, idx, pls->len - idx - num);
 	pls->len -= num;
 	return GRET_SUCCEED;
 }
 
-int32_t List1RemoveAt(list1* const pls, size_t idx)
+int32_t List2RemoveAt(list2* const pls, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _List1RemoveIn(pls, idx, 1);
+	return _List2RemoveIn(pls, idx, 1);
 }
 
-int32_t List1RemoveFront(list1* const pls, size_t num)
+int32_t List2RemoveFront(list2* const pls, const size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _List1RemoveIn(pls, 0, num);
+	return _List2RemoveIn(pls, 0, num);
 }
 
-int32_t List1RemoveBack(list1* const pls, size_t num)
+int32_t List2RemoveBack(list2* const pls, size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (num > pls->len)
 		return GRET_INVARG;
-	return _List1RemoveIn(pls, pls->len - num, num);
+	return _List2RemoveIn(pls, pls->len - num, num);
 }
 
-int32_t List1RemoveIn(list1* const pls, size_t idx, size_t num)
+int32_t List2RemoveIn(list2* const pls, const size_t idx, const size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _List1RemoveIn(pls, idx, num);
+	return _List2RemoveIn(pls, idx, num);
 }
 
-int32_t List1RemoveFrom(list1* const pls, size_t idx)
+int32_t List2RemoveFrom(list2* const pls, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVARG;
-	return _List1RemoveIn(pls, idx, pls->len - idx);
+	return _List2RemoveIn(pls, idx, pls->len - idx);
 }
 
-int32_t List1PopAt(list1* const pls, size_t idx, void* pElem)
+int32_t List2PopAt(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	_List1GetAtMove(pls, idx, pElem);
-	_List1MoveTo(pls, idx + 1, idx, pls->len - idx - 1);
+	_List2GetAtMove(pls, idx, pElem);
+	_List2MoveTo(pls, idx + 1, idx, pls->len - idx - 1);
 	pls->len--;
 	return GRET_SUCCEED;
 }
 
-int32_t List1PopFront(list1* const pls, void* pElem)
+int32_t List2PopFront(list2* const pls, void* const pElem)
 {
-	return List1PopAt(pls, 0, pElem);
+	return List2PopAt(pls, 0, pElem);
 }
 
-int32_t List1PopBack(list1* const pls, void* pElem)
+int32_t List2PopBack(list2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	return List1PopAt(pls, pls->len - 1, pElem);
+	return List2PopAt(pls, pls->len - 1, pElem);
 }
 
-int32_t List1Insert(list1* const pls, void* pElem, size_t idx)
+int32_t List2Insert(list2* const pls, void* const pElem, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx > pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _List1ExtendDLen(pls, 1);
+	const int32_t ret = _List2ExtendDLen(pls, 1);
 	RET_ON_NEG(ret);
-	_List1MoveTo(pls, idx, idx + 1, pls->len - idx);
-	_List1MakeAtCopy(pls, idx, pElem);
+	_List2MoveTo(pls, idx, idx + 1, pls->len - idx);
+	_List2MakeAtCopy(pls, idx, pElem);
 	pls->len++;
 	return GRET_SUCCEED;
 }
 
-int32_t List1InsertMove(list1* const pls, void* pElem, size_t idx)
+int32_t List2InsertMove(list2* const pls, void* const pElem, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
+	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx > pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _List1ExtendDLen(pls, 1);
+	const int32_t ret = _List2ExtendDLen(pls, 1);
 	RET_ON_NEG(ret);
-	_List1MoveTo(pls, idx, idx + 1, pls->len - idx);
-	_List1MakeAtMove(pls, idx, pElem);
+	_List2MoveTo(pls, idx, idx + 1, pls->len - idx);
+	_List2MakeAtMove(pls, idx, pElem);
 	pls->len++;
 	return GRET_SUCCEED;
 }
 
-int32_t List1GetAt(list1* const pls, size_t idx, void* pElem)
+int32_t List2GetAt(list2* const pls, const size_t idx, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
-		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
-		return GRET_NULLARG;
-	if (idx >= pls->len)
-		return GRET_INVIDX;
-	_List1GetAtCopy(pls, idx, pElem);
-	return GRET_SUCCEED;
-}
-
-int32_t List1GetFront(list1* const pls, void* pElem)
-{
-	return List1GetAt(pls, 0, pElem);
-}
-
-int32_t List1GetBack(list1* const pls, void* pElem)
-{
-	if (ISNULLPTR(pls))
-		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
-		return GRET_INVSTATUS;
-	if (pls->len <= 0)
-		return GRET_ERROR;
-	return List1GetAt(pls, pls->len - 1, pElem);
-}
-
-int32_t List1SetAt(list1* const pls, void* pElem, size_t idx)
-{
-	if (ISNULLPTR(pls))
-		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	_List1SetAtCopy(pls, idx, pElem);
+	_List2GetAtCopy(pls, idx, pElem);
 	return GRET_SUCCEED;
 }
 
-int32_t List1SetAtMove(list1* const pls, void* pElem, size_t idx)
+int32_t List2GetFront(list2* const pls, void* const pElem)
+{
+	return List2GetAt(pls, 0, pElem);
+}
+
+int32_t List2GetBack(list2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
+		return GRET_INVSTATUS;
+	if (pls->len <= 0)
+		return GRET_ERROR;
+	return List2GetAt(pls, pls->len - 1, pElem);
+}
+
+int32_t List2SetAt(list2* const pls, void* const pElem, const size_t idx)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	_List1SetAtMove(pls, idx, pElem);
+	_List2SetAtCopy(pls, idx, pElem);
 	return GRET_SUCCEED;
 }
 
-int32_t List1SetFront(list1* const pls, void* pElem)
-{
-	return List1SetAt(pls, pElem, 0);
-}
-
-int32_t List1SetFrontMove(list1* const pls, void* pElem)
-{
-	return List1SetAtMove(pls, pElem, 0);
-}
-
-int32_t List1SetBack(list1* const pls, void* pElem)
+int32_t List2SetAtMove(list2* const pls, void* const pElem, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
+	if (ISNULLPTR(pElem))
+		return GRET_NULLARG;
+	if (idx >= pls->len)
+		return GRET_INVIDX;
+	_List2SetAtMove(pls, idx, pElem);
+	return GRET_SUCCEED;
+}
+
+int32_t List2SetFront(list2* const pls, void* const pElem)
+{
+	return List2SetAt(pls, pElem, 0);
+}
+
+int32_t List2SetFrontMove(list2* const pls, void* const pElem)
+{
+	return List2SetAtMove(pls, pElem, 0);
+}
+
+int32_t List2SetBack(list2* const pls, void* const pElem)
+{
+	if (ISNULLPTR(pls))
+		return GRET_NULL;
+	if (!LIST2_ISOWN(pls))
+		return GRET_INVSTATUS;
+	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	_List1SetAtCopy(pls, pls->len - 1, pElem);
+	_List2SetAtCopy(pls, pls->len - 1, pElem);
 	return GRET_SUCCEED;
 }
 
-int32_t List1SetBackMove(list1* const pls, void* pElem)
+int32_t List2SetBackMove(list2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
+	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	_List1SetAtMove(pls, pls->len - 1, pElem);
+	_List2SetAtMove(pls, pls->len - 1, pElem);
 	return GRET_SUCCEED;
 }
 
-int32_t List1FindFirst(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe)
+int32_t List2FindFirst(list2* const pls, void* const pElem, size_t* const pIdx, const funLS0ElemEquals fe)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
+	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	const funLS0ElemEquals fEqual = (ISNOTNULLPTR(fe)) ? fe : pls->info.fEquals;
 	if (ISNULLPTR(fEqual))
@@ -818,7 +1048,7 @@ int32_t List1FindFirst(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEq
 
 	for (size_t idx = 0; idx < pls->len; ++idx)
 	{
-		if (fEqual(LIST1POS(pls, idx), pElem))
+		if (fEqual(LIST2POS(pls, idx), pElem))
 		{
 			SET_PTRVAL(pIdx, idx);
 			return 1;
@@ -827,13 +1057,13 @@ int32_t List1FindFirst(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEq
 	return 0;
 }
 
-int32_t List1FindLast(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEquals fe)
+int32_t List2FindLast(list2* const pls, void* const pElem, size_t* const pIdx, const funLS0ElemEquals fe)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (ISNOTNULLPTR(pElem))
+	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	const funLS0ElemEquals fEqual = (ISNOTNULLPTR(fe)) ? fe : pls->info.fEquals;
 	if (ISNULLPTR(fEqual))
@@ -841,7 +1071,7 @@ int32_t List1FindLast(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEqu
 
 	for (size_t idx = pls->len; idx-- > 0;)
 	{
-		if (fEqual(LIST1POS(pls, idx), pElem))
+		if (fEqual(LIST2POS(pls, idx), pElem))
 		{
 			SET_PTRVAL(pIdx, idx);
 			return 1;
@@ -850,24 +1080,17 @@ int32_t List1FindLast(list1* const pls, void* pElem, size_t* pIdx, funLS0ElemEqu
 	return 0;
 }
 
-int32_t _List1ExtendDLen(list1* const pls, size_t dLen)
+int32_t _List2ExtendDLen(list2* const pls, const size_t dLen)
 {
-	const size_t lenOld = pls->len;
-	size_t lenNew = lenOld + dLen;
-	if (lenNew < lenOld)
-		return GRET_OVERFLOW;
-	if (lenNew > pls->cap)
-	{
-		const size_t capNew = max(lenNew, pls->cap * 2);
-		if (capNew > pls->cap)
-			return _List1ReCap(pls, lenNew);
-	}
-	return GRET_NONE;
+	size_t capNew = pls->cap;
+	const int32_t ret = ListExtendDLen(pls->len, dLen, &capNew);
+	RET_ON_NPOS(ret);
+	return _List2ReCap(pls, capNew);
 }
 
-int32_t _List1ReCap(list1* const pls, size_t cap)
+int32_t _List2ReCap(list2* const pls, const size_t cap)
 {
-	void* ptr = realloc(pls->ptr, cap * pls->info.size);
+	void* const ptr = realloc(pls->ptr, cap * pls->info.sizeUnit);
 	if (ISNULLPTR(ptr))
 		return GRET_MALLOC;
 	pls->ptr = ptr;
@@ -875,97 +1098,97 @@ int32_t _List1ReCap(list1* const pls, size_t cap)
 	return GRET_SUCCEED;
 }
 
-int32_t List1ReCap(list1* const pls, size_t cap)
+int32_t List2ReCap(list2* const pls, const size_t cap)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _List1ReCap(pls, cap);
+	if (cap <= 0)
+		return GRET_INVARG;
+	if (cap < pls->len)
+		_List2Free(pls, cap, pls->len - cap);
+	return _List2ReCap(pls, cap);
 }
 
-int32_t List1ReLen(list1* const pls, size_t len)
+int32_t List2ReLen(list2* const pls, const size_t len)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (len <= 0)
 		return GRET_INVARG;
-	size_t lenOld = pls->len;
+	const size_t lenOld = pls->len;
 	if (lenOld > len)
-	{
-		_List1Clear(pls, len, lenOld - len);
-	}
+		_List2Free(pls, len, lenOld - len);
 	else if (len == lenOld)
-	{
 		return GRET_NONE;
-	}
-	else if (len > lenOld)
+	else
 	{
-		int ret = _List1ReCap(pls, len);
+		const int32_t ret = _List2ReCap(pls, len);
 		RET_ON_NEG(ret);
-		_List1Make(pls, lenOld, len - lenOld);
+		_List2Make(pls, lenOld, len - lenOld);
 	}
 	return GRET_SUCCEED;
 }
 
-int32_t List1MakeType(list1* const pls, const list1* const plsf)
+int32_t List2InitType(list2* const pls, const list2* const plsf)
 {
-	return List1MakeTypeBy(pls, plsf, LIST0INITCAP);
+	return List2InitTypeBy(pls, plsf, LIST0INITCAP);
 }
 
-int32_t List1MakeTypeBy(list1* const pls, const list1* const plsf, size_t cap)
+int32_t List2InitTypeBy(list2* const pls, const list2* const plsf, const size_t cap)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
 	if (ISNULLPTR(plsf))
 		return GRET_NULLARG;
-	if (LIST1_ISNULL(plsf))
+	if (LIST2_ISNULL(plsf))
 		return GRET_INVSTATUS;
-	return List1MakeBy(pls, cap, plsf->info.size, &plsf->info);
+	return List2InitBy(pls, cap, plsf->info.sizeData, &plsf->info);
 }
 
-int32_t List1CopyTo(list1* const pls, list1* const plsr)
+int32_t List2CopyTo(list2* const pls, list2* const plsr)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(plsr))
 		return GRET_NULLARG;
 
-	int ret = List1MakeTypeBy(plsr, pls, pls->len);
+	const int32_t ret = List2InitTypeBy(plsr, pls, pls->len);
 	RET_ON_NEG(ret);
-	_List1CopyToList(pls, 0, plsr, 0, pls->len);
+	_List2CopyToList(pls, 0, plsr, 0, pls->len);
 	return GRET_SUCCEED;
 }
 
-int32_t List1MoveTo(list1* const pls, list1* const plsr)
+int32_t List2MoveTo(list2* const pls, list2* const plsr)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(plsr))
 		return GRET_NULLARG;
 
-	List1Release(plsr);
+	List2Release(plsr);
 	plsr->cap = pls->cap;
 	plsr->len = pls->len;
 	plsr->ptr = pls->ptr;
 	plsr->status = pls->status;
 	plsr->info = pls->info;
-	List1Init(pls);
+	List2Init0(pls);
 	return GRET_SUCCEED;
 }
-int32_t List1Swap(list1* const pls, list1* const plsr)
+int32_t List2Swap(list2* const pls, list2* const plsr)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(plsr))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(plsr) && !LIST1_ISREF(plsr))
+	if (!LIST2_ISOWN(plsr) && !LIST2_ISREF(plsr))
 		return GRET_INVSTATUS;
 
 	size_t tmp = 0;
@@ -988,106 +1211,109 @@ int32_t List1Swap(list1* const pls, list1* const plsr)
 	return GRET_SUCCEED;
 }
 
-int32_t List1CatList(list1* const pls, list1* const pls2)
+int32_t List2CatList(list2* const pls, list2* const pls2)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 
 	size_t lenNew = pls->len + pls2->len;
 	if (lenNew < pls->len)
 		return GRET_OVERFLOW;
-	int ret = _List1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _List2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_List1CopyToList(pls2, 0, pls, pls->len, pls2->len);
+	_List2CopyToList(pls2, 0, pls, pls->len, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
 
-int32_t List1CatListMove(list1* const pls, list1* const pls2)
+int32_t List2CatListMove(list2* const pls, list2* const pls2)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 
 	size_t lenNew = pls->len + pls2->len;
 	if (lenNew < pls->len)
 		return GRET_OVERFLOW;
-	int ret = _List1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _List2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_List1MoveToBuf(pls2, 0, LIST1POS(pls, 0), pls->len, pls2->len);
+	_List2MoveToBuf(pls2, 0, LIST2POS(pls, 0), pls->len, pls2->len);
 	pls->len += pls2->len;
-	return List1Abandon(pls2);
+	return List2Abandon(pls2);
 }
 
-int32_t List1InsertList(list1* const pls, list1* const pls2, size_t idx)
+int32_t List2InsertList(list2* const pls, list2* const pls2, const size_t idx)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _List1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _List2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_List1MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
-	_List1CopyToList(pls2, 0, pls, idx, pls2->len);
+	_List2MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
+	_List2CopyToList(pls2, 0, pls, idx, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
 
-int32_t List1InsertListMove(list1* const pls, list1* const pls2, size_t idx)
+int32_t List2InsertListMove(list2* const pls, list2* const pls2, const size_t idx)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _List1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _List2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_List1MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
-	_List1MoveToBuf(pls2, 0, LIST1POS(pls, 0), idx, pls2->len);
+	_List2MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
+	_List2MoveToBuf(pls2, 0, LIST2POS(pls, 0), idx, pls2->len);
 	pls->len += pls2->len;
-	return List1Abandon(pls2);
+	return List2Abandon(pls2);
 }
 
-#pragma endregion list1
+#pragma endregion list2
 
-void _PtrList1MoveTo(ptrlist1* const pls, size_t from, size_t to, size_t len)
+
+#pragma region ptrlist2
+
+void _PtrList2MoveTo(ptrlist2* const pls, const size_t from, const size_t to, const size_t len)
 {
-	memmove(PTRLIST1POS(pls, to), PTRLIST1POS(pls, from), len * sizeof(void*));
+	memmove(PTRLIST2POS(pls, to), PTRLIST2POS(pls, from), len * sizeof(void*));
 }
-void _PtrList1CopyToList(ptrlist1* const pls, size_t from, ptrlist1* const pls2, size_t to, size_t len)
+void _PtrList2CopyToList(ptrlist2* const pls, const size_t from, ptrlist2* const pls2, const size_t to, const size_t len)
 {
-	memmove(PTRLIST1POS(pls2, to), PTRLIST1POS(pls, from), len * sizeof(void*));
+	memmove(PTRLIST2POS(pls2, to), PTRLIST2POS(pls, from), len * sizeof(void*));
 }
-void _PtrList1DeepCopyToList(ptrlist1* const pls, size_t from, ptrlist1* const pls2, size_t to, size_t len)
+void _PtrList2DeepCopyToList(ptrlist2* const pls, const size_t from, ptrlist2* const pls2, const size_t to, const size_t len)
 {
 	const funPLS0ElemCopyConstructor fCopyCtor = pls->info.fConstructorCopy;
 	if (ISNOTNULLPTR(fCopyCtor))
 	{
-		void** const plsf0 = PTRLIST1POS(pls, from);
-		void** const plst0 = PTRLIST1POS(pls2, to);
+		void** const plsf0 = PTRLIST2POS(pls, from);
+		void** const plst0 = PTRLIST2POS(pls2, to);
 		if (plsf0 > plst0)
 		{
 			for (size_t i = 0; i < len; ++i)
 			{
 				void* pElemCopy = NULL;
-				int ret = fCopyCtor(PTRLIST1POS(pls2, to + i), &pElemCopy);
-				PTRLIST1AT(pls2, to + i) = pElemCopy;
+				const int32_t ret = fCopyCtor(PTRLIST2POS(pls2, to + i), &pElemCopy);
+				PTRLIST2AT(pls2, to + i) = pElemCopy;
 			}
 		}
 		else
@@ -1095,17 +1321,17 @@ void _PtrList1DeepCopyToList(ptrlist1* const pls, size_t from, ptrlist1* const p
 			for (size_t i = len; i-- > 0;)
 			{
 				void* pElemCopy = NULL;
-				int ret = fCopyCtor(PTRLIST1POS(pls2, to + i), &pElemCopy);
-				PTRLIST1AT(pls2, to + i) = pElemCopy;
+				const int32_t ret = fCopyCtor(PTRLIST2POS(pls2, to + i), &pElemCopy);
+				PTRLIST2AT(pls2, to + i) = pElemCopy;
 			}
 		}
 	}
 	else
 	{
-		memmove(LIST1POS(pls2, to), LIST1POS(pls, from), len * pls->info.size);
+		memmove(LIST2POS(pls2, to), LIST2POS(pls, from), len * pls->info.sizeUnit);
 	}
 }
-void _PtrList1Make(ptrlist1* const pls, size_t from, size_t num)
+void _PtrList2Make(ptrlist2* const pls, const size_t from, const size_t num)
 {
 	const funPLS0ElemConstructorDef fCTor = pls->info.fConstructorDef;
 	if (ISNOTNULLPTR(fCTor))
@@ -1113,41 +1339,41 @@ void _PtrList1Make(ptrlist1* const pls, size_t from, size_t num)
 		for (size_t idx = from; idx < num; ++idx)
 		{
 			void* pElem = NULL;
-			int32_t ret = fCTor(&pElem);
+			const int32_t ret = fCTor(&pElem);
 			if (ret < 0)
 				return;
-			PTRLIST1AT(pls, idx) = pElem;
+			PTRLIST2AT(pls, idx) = pElem;
 		}
 	}
 	else
 	{
 		for (size_t idx = from; idx < num; ++idx)
 		{
-			PTRLIST1AT(pls, idx) = NULL;
+			PTRLIST2AT(pls, idx) = NULL;
 		}
 	}
 }
-void _PtrList1Clear(ptrlist1* const pls, size_t from, size_t num)
+void _PtrList2Clear(ptrlist2* const pls, const size_t from, const size_t num)
 {
 	const funPLS0ElemDestructor fDTor = pls->info.fDestructor;
 	if (ISNOTNULLPTR(fDTor))
 	{
 		for (size_t idx = from; idx < num; ++idx)
 		{
-			fDTor(PTRLIST1AT(pls, idx));
+			fDTor(PTRLIST2AT(pls, idx));
 		}
 	}
 	for (size_t idx = from; idx < num; ++idx)
 	{
-		safefreeandreset(PTRLIST1POS(pls, idx));
+		safefreereset(PTRLIST2POS(pls, idx));
 	}
 }
 
-int32_t _PtrList1DeepCopy(ptrlist1* const pls, void* pElem, void** ppElemCopy)
+int32_t _PtrList2DeepCopy(ptrlist2* const pls, void* const pElem, void** const ppElemCopy)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(ppElemCopy))
 		return GRET_NULLARG;
@@ -1156,13 +1382,13 @@ int32_t _PtrList1DeepCopy(ptrlist1* const pls, void* pElem, void** ppElemCopy)
 	{
 		if (ISNULLPTR(pls->info.fConstructorCopy))
 			return GRET_NULLFUNC;
-		int32_t ret = pls->info.fConstructorCopy(pElem, ppElemCopy);
+		const int32_t ret = pls->info.fConstructorCopy(pElem, ppElemCopy);
 		RET_ON_NEG(ret);
 	}
 	return GRET_SUCCEED;
 }
 
-void PtrList1Init(ptrlist1* const pls)
+void PtrList2Init0(ptrlist2* const pls)
 {
 	if (ISNOTNULLPTR(pls))
 	{
@@ -1174,50 +1400,58 @@ void PtrList1Init(ptrlist1* const pls)
 	}
 }
 
-int32_t PtrList1Make(ptrlist1* const pls, const ptrlist0info* const pinfo)
+int32_t PtrList2Init(ptrlist2* const pls, const ptrlist0info* const pinfo)
 {
-	return PtrList1MakeBy(pls, LIST0INITCAP, pinfo);
+	return PtrList2InitBy(pls, LIST0INITCAP, pinfo);
 }
 
-int32_t PtrList1MakeBy(ptrlist1* const pls, size_t cap, const ptrlist0info* const pinfo)
+int32_t PtrList2InitBy(ptrlist2* const pls, const size_t cap, const ptrlist0info* const pinfo)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	PtrList1Init(pls);
-	return PtrList1MakeByPure(pls, cap, pinfo);
+	PtrList2Init0(pls);
+	return PtrList2InitByPure(pls, cap, pinfo);
 }
 
-int32_t PtrList1MakeByPure(ptrlist1* const pls, size_t cap, const ptrlist0info* const pinfo)
+int32_t PtrList2InitByPure(ptrlist2* const pls, const size_t cap, const ptrlist0info* const pinfo)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
 
-	void** ptr = (void**)malloc(cap * sizeof(void*));
+	if (OVERFLOW_MUL_sizet(cap, sizeof(void*)))
+		return GRET_OVERFLOW;
+	void** const ptr = (void**)malloc(cap * sizeof(void*));
 	if (ISNULLPTR(ptr))
 		return GRET_MALLOC;
+	//memset(ptr, 0, cap * sizeof(void*));
 	pls->ptr = ptr;
 	pls->cap = cap;
 	pls->status = CTNSTATUS::CTNS_OWN;
 	if (ISNOTNULLPTR(pinfo))
 		pls->info = *pinfo;
-	pls->info.size = sizeof(void*);
+	pls->info.sizeData = sizeof(void*);
+	pls->info.sizeUnit = pls->info.sizeData;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1Clear(ptrlist1* const pls)
+int32_t PtrList2Clear(ptrlist2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_INVSTATUS;
 
 	switch (pls->status)
 	{
 	case CTNSTATUS::CTNS_OWN:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
-		_PtrList1Clear(pls, 0, pls->len);
+		_PtrList2Clear(pls, 0, pls->len);
 		return GRET_SUCCEED;
 	case CTNSTATUS::CTNS_REF:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		pls->ptr = NULL;
 		return GRET_SUCCEED;
@@ -1229,19 +1463,23 @@ int32_t PtrList1Clear(ptrlist1* const pls)
 	return GRET_NONE;
 }
 
-int32_t PtrList1Abandon(ptrlist1* const pls)
+int32_t PtrList2Abandon(ptrlist2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_INVSTATUS;
 
 	switch (pls->status)
 	{
 	case CTNSTATUS::CTNS_OWN:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		return GRET_SUCCEED;
 	case CTNSTATUS::CTNS_REF:
+		//if (0 == pls->len)
+		//	return GRET_NONE;
 		pls->len = 0;
 		pls->ptr = NULL;
 		return GRET_SUCCEED;
@@ -1253,16 +1491,15 @@ int32_t PtrList1Abandon(ptrlist1* const pls)
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1Release(ptrlist1* const pls)
+int32_t PtrList2Release(ptrlist2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_NONE;
 
-	const int32_t ret = PtrList1Clear(pls);
-	if (ret < 0)
-		return ret;
+	const int32_t ret = PtrList2Clear(pls);
+	RET_ON_NEG(ret);
 
 	const CTNSTATUS status = pls->status;
 	switch (status)
@@ -1284,277 +1521,272 @@ int32_t PtrList1Release(ptrlist1* const pls)
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1ReleaseAbandon(ptrlist1* const pls)
+int32_t PtrList2ReleaseAbandon(ptrlist2* const pls)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (LIST1_ISNULL(pls))
+	if (LIST2_ISNULL(pls))
 		return GRET_NONE;
-	const int32_t ret = PtrList1Abandon(pls);
-	return PtrList1Release(pls);
+	const int32_t ret = PtrList2Abandon(pls);
+	return PtrList2Release(pls);
 }
 
-int32_t PtrList1Add(ptrlist1* const pls, void* pElem)
+int32_t PtrList2Add(ptrlist2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return PtrList1Insert(pls, pElem, pls->len);
+	return PtrList2Insert(pls, pElem, pls->len);
 }
 
-int32_t PtrList1AddDeepCopy(ptrlist1* const pls, void* pElem)
+int32_t PtrList2AddDeepCopy(ptrlist2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return PtrList1InsertDeepCopy(pls, pElem, pls->len);
+	return PtrList2InsertDeepCopy(pls, pElem, pls->len);
 }
 
-int32_t PtrList1AddFront(ptrlist1* const pls, void* pElem)
+int32_t PtrList2AddFront(ptrlist2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 
-	const int32_t ret = _PtrList1ExtendDLen(pls, 1);
+	const int32_t ret = _PtrList2ExtendDLen(pls, 1);
 	RET_ON_NEG(ret);
-	_PtrList1MoveTo(pls, 0, 1, pls->len);
-	PTRLIST1AT(pls, 0) = pElem;
+	_PtrList2MoveTo(pls, 0, 1, pls->len);
+	PTRLIST2AT(pls, 0) = pElem;
 	pls->len++;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1AddFrontDeepCopy(ptrlist1* const pls, void* pElem)
+int32_t PtrList2AddFrontDeepCopy(ptrlist2* const pls, void* const pElem)
 {
-	return PtrList1Insert(pls, pElem, 0);
+	return PtrList2Insert(pls, pElem, 0);
 }
 
-int32_t _PtrList1RemoveIn(ptrlist1* const pls, size_t idx, size_t num)
+int32_t _PtrList2RemoveIn(ptrlist2* const pls, const size_t idx, const size_t num)
 {
 	if (idx >= pls->len || num > pls->len - idx)
 		return GRET_INVARG;
-	_PtrList1Clear(pls, idx, num);
-	_PtrList1MoveTo(pls, idx + num, idx, pls->len - idx - num);
+	_PtrList2Clear(pls, idx, num);
+	_PtrList2MoveTo(pls, idx + num, idx, pls->len - idx - num);
 	pls->len -= num;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1RemoveAt(ptrlist1* const pls, size_t idx)
+int32_t PtrList2RemoveAt(ptrlist2* const pls, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _PtrList1RemoveIn(pls, idx, 1);
+	return _PtrList2RemoveIn(pls, idx, 1);
 }
 
-int32_t PtrList1RemoveFront(ptrlist1* const pls, size_t num)
+int32_t PtrList2RemoveFront(ptrlist2* const pls, const size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _PtrList1RemoveIn(pls, 0, num);
+	return _PtrList2RemoveIn(pls, 0, num);
 }
 
-int32_t PtrList1RemoveBack(ptrlist1* const pls, size_t num)
+int32_t PtrList2RemoveBack(ptrlist2* const pls, const size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (num > pls->len)
 		return GRET_INVARG;
-	return _PtrList1RemoveIn(pls, pls->len - num, num);
+	return _PtrList2RemoveIn(pls, pls->len - num, num);
 }
 
-int32_t PtrList1RemoveIn(ptrlist1* const pls, size_t idx, size_t num)
+int32_t PtrList2RemoveIn(ptrlist2* const pls, const size_t idx, const size_t num)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _PtrList1RemoveIn(pls, idx, num);
+	return _PtrList2RemoveIn(pls, idx, num);
 }
 
-int32_t PtrList1RemoveFrom(ptrlist1* const pls, size_t idx)
+int32_t PtrList2RemoveFrom(ptrlist2* const pls, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVARG;
-	return _PtrList1RemoveIn(pls, idx, pls->len - idx);
+	return _PtrList2RemoveIn(pls, idx, pls->len - idx);
 }
 
-int32_t PtrList1PopAt(ptrlist1* const pls, size_t idx, void** pElem)
+int32_t PtrList2PopAt(ptrlist2* const pls, const size_t idx, void** const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	*pElem = PTRLIST1AT(pls, idx);
-	_PtrList1MoveTo(pls, idx + 1, idx, pls->len - idx - 1);
+	*pElem = PTRLIST2AT(pls, idx);
+	_PtrList2MoveTo(pls, idx + 1, idx, pls->len - idx - 1);
 	pls->len--;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1PopFront(ptrlist1* const pls, void** pElem)
+int32_t PtrList2PopFront(ptrlist2* const pls, void** const pElem)
 {
-	return PtrList1PopAt(pls, 0, pElem);
+	return PtrList2PopAt(pls, 0, pElem);
 }
 
-int32_t PtrList1PopBack(ptrlist1* const pls, void** pElem)
+int32_t PtrList2PopBack(ptrlist2* const pls, void** const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	return PtrList1PopAt(pls, pls->len - 1, pElem);
+	return PtrList2PopAt(pls, pls->len - 1, pElem);
 }
 
-int32_t PtrList1Insert(ptrlist1* const pls, void* pElem, size_t idx)
+int32_t PtrList2Insert(ptrlist2* const pls, void* const pElem, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (idx > pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _PtrList1ExtendDLen(pls, 1);
+	const int32_t ret = _PtrList2ExtendDLen(pls, 1);
 	RET_ON_NEG(ret);
-	_PtrList1MoveTo(pls, idx, idx + 1, pls->len - idx);
-	PTRLIST1AT(pls, idx) = pElem;
+	_PtrList2MoveTo(pls, idx, idx + 1, pls->len - idx);
+	PTRLIST2AT(pls, idx) = pElem;
 	pls->len++;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1InsertDeepCopy(ptrlist1* const pls, void* pElem, size_t idx)
+int32_t PtrList2InsertDeepCopy(ptrlist2* const pls, void* const pElem, const size_t idx)
 {
 	if (idx > pls->len)
 		return GRET_INVIDX;
 
 	void* pElemCopy = NULL;
-	int32_t ret = _PtrList1DeepCopy(pls, pElem, &pElemCopy);
+	const int32_t ret = _PtrList2DeepCopy(pls, pElem, &pElemCopy);
 	RET_ON_NEG(ret);
-	return PtrList1Insert(pls, pElemCopy, idx);
+	return PtrList2Insert(pls, pElemCopy, idx);
 }
 
-int32_t PtrList1GetAt(ptrlist1* const pls, size_t idx, void** pElem)
+int32_t PtrList2GetAt(ptrlist2* const pls, const size_t idx, void** const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(pElem))
 		return GRET_NULLARG;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	*pElem = PTRLIST1AT(pls, idx);
+	*pElem = PTRLIST2AT(pls, idx);
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1GetFront(ptrlist1* const pls, void** pElem)
+int32_t PtrList2GetFront(ptrlist2* const pls, void** const pElem)
 {
-	return PtrList1GetAt(pls, 0, pElem);
+	return PtrList2GetAt(pls, 0, pElem);
 }
 
-int32_t PtrList1GetBack(ptrlist1* const pls, void** pElem)
+int32_t PtrList2GetBack(ptrlist2* const pls, void** const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	return PtrList1GetAt(pls, pls->len - 1, pElem);
+	return PtrList2GetAt(pls, pls->len - 1, pElem);
 }
 
-int32_t PtrList1SetAt(ptrlist1* const pls, void* pElem, size_t idx)
+int32_t PtrList2SetAt(ptrlist2* const pls, void* const pElem, const size_t idx)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
-	PTRLIST1AT(pls, idx) = pElem;
+	PTRLIST2AT(pls, idx) = pElem;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1SetAtDeepCopy(ptrlist1* const pls, void* pElem, size_t idx)
+int32_t PtrList2SetAtDeepCopy(ptrlist2* const pls, void* const pElem, const size_t idx)
 {
 	if (idx >= pls->len)
 		return GRET_INVIDX;
 
 	void* pElemCopy = NULL;
-	int32_t ret = _PtrList1DeepCopy(pls, pElem, &pElemCopy);
+	const int32_t ret = _PtrList2DeepCopy(pls, pElem, &pElemCopy);
 	RET_ON_NEG(ret);
-	return PtrList1SetAt(pls, pElemCopy, idx);
+	return PtrList2SetAt(pls, pElemCopy, idx);
 }
 
-int32_t PtrList1SetFront(ptrlist1* const pls, void* pElem)
+int32_t PtrList2SetFront(ptrlist2* const pls, void* const pElem)
 {
-	return PtrList1SetAt(pls, pElem, 0);
+	return PtrList2SetAt(pls, pElem, 0);
 }
 
-int32_t PtrList1SetFrontDeepCopy(ptrlist1* const pls, void* pElem)
+int32_t PtrList2SetFrontDeepCopy(ptrlist2* const pls, void* const pElem)
 {
-	return PtrList1SetAtDeepCopy(pls, pElem, 0);
+	return PtrList2SetAtDeepCopy(pls, pElem, 0);
 }
 
-int32_t PtrList1SetBack(ptrlist1* const pls, void* pElem)
+int32_t PtrList2SetBack(ptrlist2* const pls, void* const pElem)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (pls->len <= 0)
 		return GRET_ERROR;
-	PTRLIST1AT(pls, pls->len - 1) = pElem;
+	PTRLIST2AT(pls, pls->len - 1) = pElem;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1SetBackDeepCopy(ptrlist1* const pls, void* pElem)
+int32_t PtrList2SetBackDeepCopy(ptrlist2* const pls, void* const pElem)
 {
 	if (pls->len <= 0)
 		return GRET_ERROR;
 
 	void* pElemCopy = NULL;
-	int32_t ret = _PtrList1DeepCopy(pls, pElem, &pElemCopy);
+	const int32_t ret = _PtrList2DeepCopy(pls, pElem, &pElemCopy);
 	RET_ON_NEG(ret);
-	return PtrList1SetBack(pls, pElemCopy);
+	return PtrList2SetBack(pls, pElemCopy);
 }
 
-int32_t _PtrList1ExtendDLen(ptrlist1* const pls, size_t dLen)
+int32_t _PtrList2ExtendDLen(ptrlist2* const pls, const size_t dLen)
 {
-	const size_t lenOld = pls->len;
-	size_t lenNew = lenOld + dLen;
-	if (lenNew < lenOld)
+	size_t capNew = pls->cap;
+	const int32_t ret = ListExtendDLen(pls->len, dLen, &capNew);
+	RET_ON_NPOS(ret);
+	return _PtrList2ReCap(pls, capNew);
+}
+
+int32_t _PtrList2ReCap(ptrlist2* const pls, const size_t cap)
+{
+	if (OVERFLOW_MUL_sizet(cap, sizeof(void*)))
 		return GRET_OVERFLOW;
-	if (lenNew > pls->cap)
-	{
-		const size_t capNew = max(lenNew, pls->cap * 2);
-		if (capNew > pls->cap)
-			return _PtrList1ReCap(pls, lenNew);
-	}
-	return GRET_NONE;
-}
-
-int32_t _PtrList1ReCap(ptrlist1* const pls, size_t cap)
-{
-	void** ptr = (void**)realloc(pls->ptr, cap * sizeof(void*));
+	void** const ptr = (void**)realloc(pls->ptr, cap * sizeof(void*));
 	if (ISNULLPTR(ptr))
 		return GRET_MALLOC;
 	pls->ptr = ptr;
@@ -1562,27 +1794,31 @@ int32_t _PtrList1ReCap(ptrlist1* const pls, size_t cap)
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1ReCap(ptrlist1* const pls, size_t cap)
+int32_t PtrList2ReCap(ptrlist2* const pls, const size_t cap)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
-	return _PtrList1ReCap(pls, cap);
+	if (cap <= 0)
+		return GRET_INVARG;
+	if (pls->len > cap)
+		_PtrList2Clear(pls, cap, pls->len - cap);
+	return _PtrList2ReCap(pls, cap);
 }
 
-int32_t PtrList1ReLen(ptrlist1* const pls, size_t len)
+int32_t PtrList2ReLen(ptrlist2* const pls, const size_t len)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls))
+	if (!LIST2_ISOWN(pls))
 		return GRET_INVSTATUS;
 	if (len <= 0)
 		return GRET_INVARG;
-	size_t lenOld = pls->len;
+	const size_t lenOld = pls->len;
 	if (lenOld > len)
 	{
-		_PtrList1Clear(pls, len, lenOld - len);
+		_PtrList2Clear(pls, len, lenOld - len);
 	}
 	else if (len == lenOld)
 	{
@@ -1590,68 +1826,68 @@ int32_t PtrList1ReLen(ptrlist1* const pls, size_t len)
 	}
 	else if (len > lenOld)
 	{
-		int ret = _PtrList1ReCap(pls, len);
+		const int32_t ret = _PtrList2ReCap(pls, len);
 		RET_ON_NEG(ret);
-		_PtrList1Make(pls, lenOld, len - lenOld);
+		_PtrList2Make(pls, lenOld, len - lenOld);
 	}
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1CopyTo(ptrlist1* const pls, ptrlist1* const plsr)
+int32_t PtrList2CopyTo(ptrlist2* const pls, ptrlist2* const plsr)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(plsr))
 		return GRET_NULLARG;
 
-	int ret = PtrList1MakeBy(plsr, pls->len);
+	const int32_t ret = PtrList2InitBy(plsr, pls->len);
 	RET_ON_NEG(ret);
-	_PtrList1CopyToList(pls, 0, plsr, 0, pls->len);
+	_PtrList2CopyToList(pls, 0, plsr, 0, pls->len);
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1DeepCopyTo(ptrlist1* const pls, ptrlist1* const plsr)
+int32_t PtrList2DeepCopyTo(ptrlist2* const pls, ptrlist2* const plsr)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(plsr))
 		return GRET_NULLARG;
 
-	int ret = PtrList1MakeBy(plsr, pls->len);
+	const int32_t ret = PtrList2InitBy(plsr, pls->len);
 	RET_ON_NEG(ret);
-	_PtrList1CopyToList(pls, 0, plsr, 0, pls->len);
+	_PtrList2CopyToList(pls, 0, plsr, 0, pls->len);
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1MoveTo(ptrlist1* const pls, ptrlist1* const plsr)
+int32_t PtrList2MoveTo(ptrlist2* const pls, ptrlist2* const plsr)
 {
 	if (ISNULLPTR(pls))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
 	if (ISNULLPTR(plsr))
 		return GRET_NULLARG;
 
-	PtrList1Release(plsr);
+	PtrList2Release(plsr);
 	plsr->cap = pls->cap;
 	plsr->len = pls->len;
 	plsr->ptr = pls->ptr;
 	plsr->status = pls->status;
 	plsr->info = pls->info;
-	PtrList1Init(pls);
+	PtrList2Init0(pls);
 	return GRET_SUCCEED;
 }
-int32_t PtrList1Swap(ptrlist1* const pls, ptrlist1* const plsr)
+int32_t PtrList2Swap(ptrlist2* const pls, ptrlist2* const plsr)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(plsr))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(plsr) && !LIST1_ISREF(plsr))
+	if (!LIST2_ISOWN(plsr) && !LIST2_ISREF(plsr))
 		return GRET_INVSTATUS;
 
 	size_t tmp = 0;
@@ -1674,78 +1910,74 @@ int32_t PtrList1Swap(ptrlist1* const pls, ptrlist1* const plsr)
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1CatList(ptrlist1* const pls, ptrlist1* const pls2)
+int32_t PtrList2CatList(ptrlist2* const pls, ptrlist2* const pls2)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 
-	size_t lenNew = pls->len + pls2->len;
-	if (lenNew < pls->len)
-		return GRET_OVERFLOW;
-	int ret = _PtrList1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _PtrList2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_PtrList1CopyToList(pls2, 0, pls, pls->len, pls2->len);
+	_PtrList2CopyToList(pls2, 0, pls, pls->len, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1CatListDeepCopy(ptrlist1* const pls, ptrlist1* const pls2)
+int32_t PtrList2CatListDeepCopy(ptrlist2* const pls, ptrlist2* const pls2)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 
-	size_t lenNew = pls->len + pls2->len;
-	if (lenNew < pls->len)
-		return GRET_OVERFLOW;
-	int ret = _PtrList1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _PtrList2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_PtrList1DeepCopyToList(pls2, 0, pls, pls->len, pls2->len);
+	_PtrList2DeepCopyToList(pls2, 0, pls, pls->len, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1InsertList(ptrlist1* const pls, ptrlist1* const pls2, size_t idx)
+int32_t PtrList2InsertList(ptrlist2* const pls, ptrlist2* const pls2, const size_t idx)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _PtrList1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _PtrList2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_PtrList1MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
-	_PtrList1CopyToList(pls2, 0, pls, idx, pls2->len);
+	_PtrList2MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
+	_PtrList2CopyToList(pls2, 0, pls, idx, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
 
-int32_t PtrList1InsertListDeepCopy(ptrlist1* const pls, ptrlist1* const pls2, size_t idx)
+int32_t PtrList2InsertListDeepCopy(ptrlist2* const pls, ptrlist2* const pls2, const size_t idx)
 {
 	if (ISNULLPTR(pls) || ISNULLPTR(pls2))
 		return GRET_NULL;
-	if (!LIST1_ISOWN(pls) && !LIST1_ISREF(pls))
+	if (!LIST2_ISOWN(pls) && !LIST2_ISREF(pls))
 		return GRET_INVSTATUS;
-	if (!LIST1_ISOWN(pls2) && !LIST1_ISREF(pls2))
+	if (!LIST2_ISOWN(pls2) && !LIST2_ISREF(pls2))
 		return GRET_INVSTATUS;
 	if (idx >= pls->len)
 		return GRET_INVIDX;
 
-	const int32_t ret = _PtrList1ExtendDLen(pls, pls2->len);
+	const int32_t ret = _PtrList2ExtendDLen(pls, pls2->len);
 	RET_ON_NEG(ret);
-	_PtrList1MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
-	_PtrList1DeepCopyToList(pls2, 0, pls, idx, pls2->len);
+	_PtrList2MoveTo(pls, idx, idx + pls2->len, pls->len - idx);
+	_PtrList2DeepCopyToList(pls2, 0, pls, idx, pls2->len);
 	pls->len += pls2->len;
 	return GRET_SUCCEED;
 }
+
+#pragma endregion ptrlist2

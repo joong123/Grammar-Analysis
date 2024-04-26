@@ -30,6 +30,10 @@
 #define SET_PTRVAL(PTR, VAL)	if (NULL != (PTR)) *(PTR) = (VAL);
 
 #define RET_ON_NEG(ret)		{ if(0 > (ret)) return (ret); }
+#define RET_ON_NPOS(ret)	{ if(0 >= (ret)) return (ret); }
+
+#define OVERFLOW_MUL(a, b, v)		((v) / (b) < (a))
+#define OVERFLOW_MUL_sizet(a, b)	OVERFLOW_MUL((a), (b), (size_t)(-1))
 
 
 typedef int32_t				i32;
@@ -66,7 +70,7 @@ inline void safefree(void* ptr)
 		free(ptr);
 }
 
-inline void safefreeandreset(void** pptr)
+inline void safefreereset(void** pptr)
 {
 	if (pptr)
 	{

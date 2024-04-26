@@ -5,7 +5,7 @@
 #include "list0.h"
 
 
-typedef i64			id_t;
+typedef int64_t			id_t;
 
 
 enum GRM_ELEM_TYPE
@@ -33,16 +33,25 @@ enum GRM_WORD_CLASS
 enum GRM_RELATION_TYPE
 {
 	STTRLT_UNKNOWN		= 0,
-	STTRLT_NORMAL		= 1,
-	STTRLT_BRACKET		= 2,
-	STTRLT_CUSTOMIZED	= 4
+	STTRLT_RELATION		= 1,
+	STTRLT_NORMAL		= 2,
+	STTRLT_BRACKET		= 4,
+	STTRLT_CUSTOMIZED	= 8
+};
+
+enum GRM_RELATION_CLASS
+{
+	STTRCL_UNKNOWN		= 0,
+	STTRCL_RELATION		= 1,
+	STTRCL_TYPE			= 2
 };
 
 enum GRM_RELATION_PART
 {
 	STTRLP_UNKNOWN		= 0,
 	STTRLP_WHOLE		= 1,
-	STTRLP_PART			= 2
+	STTRLP_PART			= 2,
+	STTRLP_PARTS		= 3
 };
 
 enum GRM_RELATION_BIND
@@ -53,30 +62,37 @@ enum GRM_RELATION_BIND
 	STTRBT_RIGHT		= 4
 };
 
-// can oprands swapped
-enum GRM_RELATION_SWAP
+// commutative law
+enum GRM_RELATION_COMMUTATIVE
 {
-	STTRST_UNKNOWN		= 0,
-	STTRST_NO			= 1,
-	STTRST_YES			= 2
+	STTRCM_UNKNOWN		= 0,
+	STTRCM_NO			= 1,
+	STTRCM_YES			= 2
 };
 
-// can continuos self operator swapped
-enum GRM_RELATION_SWAPSELF
+// associative law
+enum GRM_RELATION_ASSOCIATIVE
 {
-	STTRSS_UNKNOWN		= 0,
-	STTRSS_NO			= 1,
-	STTRSS_YES			= 2
+	STTRAS_UNKNOWN		= 0,
+	STTRAS_NO			= 1,
+	STTRAS_YES			= 2
 };
 
 enum GRM_RELATION_POSITION
 {
 	STTRPS_UNKNOWN		= 0,
-	STTRPS_NONE			= 1,
-	STTRPS_FRONT		= 2,
-	STTRPS_MIDDLE		= 4,
-	STTRPS_BACK			= 8
+	STTRPS_NONE			= 0,
+	STTRPS_FRONT		= 0x01,
+	STTRPS_MIDDLE		= 0x02,
+	STTRPS_REAR			= 0x04,
+	STTRPS_FM			= 0x03,
+	STTRPS_FR			= 0x05,
+	STTRPS_MR			= 0x06,
+	STTRPS_FMR			= 0x07
 };
+
+
+// derived formula system definitions
 
 enum GRM_TOKEN_TYPE
 {
@@ -94,6 +110,7 @@ enum GRM_TERMINAL_TYPE
 	STTTMT_FUN			= 8
 };
 
+// return
 enum GRM_RETURN
 {
 	GRMR_FAIL			= -1,
@@ -111,7 +128,7 @@ typedef GRM_RETURN	GRM_RET;
 
 
 
-
+// TODOs:
 // relation funEvaluate
 // word type, get data
 // FunAcceptWord serialize
@@ -120,6 +137,88 @@ typedef GRM_RETURN	GRM_RET;
 // 6+2*3  6*2+3  6*2+3*5
 // 623*+  62*3+  62*35*+
 
+typedef struct grm_relation_def
+{
+	//id_t				id;
+	wstr1				idtype;		// unique id. control position in 'normalized expression'
+	wstr1				name;
+	wstr1				desc;
+
+	GRM_RELATION_TYPE	type;
+	GRM_RELATION_CLASS	cls;
+	GRM_RELATION_BIND	bind;		// bind
+	GRM_RELATION_COMMUTATIVE comm;
+	GRM_RELATION_ASSOCIATIVE asso;
+	int32_t				priority;	// priority
+	list1				parts;		// store #operand before each part operator
+
+	wstr1				grammar;
+
+	// redendunt
+
+} grm_rela_def;
+
+
+struct grm_elem;
+typedef size_t (*FunAcceptChar)(ch c, grm_elem* elem);
+typedef size_t (*FunAcceptWord)(const ch* p, size_t len, grm_elem* elem);
+typedef size_t (*FunAcceptAllWord)(const ch* p, size_t len, list1* elems);
+
+typedef struct grm_word_def
+{
+	//id_t				id;
+	wstr1				idType;
+	wstr1				name;
+	wstr1				desc;
+
+	//GRM_WORD_TYPE		type;
+	GRM_WORD_CLASS		cls;
+
+	FunAcceptChar		func;
+	FunAcceptWord		funw;
+	FunAcceptAllWord	funa;
+} grm_word_def;
+
+typedef struct grm_elem_def
+{
+	GRM_ELEM_TYPE	type;
+	union
+	{
+		grm_relation_def	relation;
+		grm_word_def		word;
+	};
+} grm_elem_def;
+
+
+typedef struct grm_relation_data
+{
+	size_t		iPart;
+	list1		parts;
+	void*		p;
+	uint64_t	padding;
+} grm_rela;
+
+typedef union grm_word_data
+{
+	wstr1		str;
+	void*		p;
+} grm_word;
+
+typedef struct grm_elem
+{
+	GRM_ELEM_TYPE	type;
+	union
+	{
+		grm_relation_data	relation;
+		grm_word_data		word;
+	};
+} grm_elem;
+
+
+
+//
+// Derived-Formula Grammar System
+//
 
 typedef struct grm_terminal_def
 {
@@ -152,7 +251,7 @@ typedef struct grm_token
 
 typedef struct grm_derive
 {
-	list1			toks;
+	list2			toks;
 } grm_drv;
 
 typedef struct grm_formula
@@ -164,99 +263,5 @@ typedef struct grm_formula
 typedef struct grm_system
 {
 	grm_token		tok0;
-	list1			fmls;
+	list2			fmls;
 } grm_sys;
-
-
-
-typedef struct grm_relation_def
-{
-	GRM_RELATION_TYPE	type;
-
-	int32_t				priority; // priority
-	int32_t				serNo; // control position in 'normalized expression'
-	GRM_RELATION_BIND	bind; // bind
-	GRM_RELATION_SWAP	swap;
-	GRM_RELATION_SWAPSELF	swapself;
-	//size_t			iPart;
-	size_t				nPart;
-	list1				parts;// len = nPart + 1, store #operand before each part operator
-
-	bool				bEntity; // whether has entity text
-
-	wstr1				grammar;
-
-	// redendunt
-
-} stt_rela_def;
-
-typedef struct grm_relation_data
-{
-	size_t				iPart;
-	GRM_RELATION_PART	part;
-} stt_rela;
-
-typedef union grm_word_data
-{
-	/*int32_t		i;
-	int64_t		l;
-	float		f;
-	double		d;*/
-	void*		p;
-} grm_word;
-
-
-struct grm_elem;
-typedef int (*FunAcceptChar)(ch c, grm_elem* elem);
-typedef int (*FunAcceptWord)(const ch* p, size_t len, grm_elem* elem);
-typedef int (*FunAcceptAllWord)(const ch* p, size_t len, grm_elem** elem);
-
-typedef struct grm_word_type_def
-{
-	//GRM_WORD_TYPE		type;
-
-	bool				bDynamic;// dynamic match
-
-	FunAcceptChar		func;
-	FunAcceptWord		funw;
-	FunAcceptAllWord	funa;
-	GRM_WORD_CLASS		cls;
-} grm_word_type_def;
-
-typedef struct grm_elem_def
-{
-	//id_t			id;
-	wstr1			name;
-	wstr1			idType;
-
-	wstr1			desc;
-
-	GRM_ELEM_TYPE	type;
-	union
-	{
-		grm_relation_def	relation;
-		grm_word_type_def	word;
-	};
-} grm_elem_def;
-
-typedef struct grm_elem_base
-{
-	id_t			id;
-	wstr1			name;
-	wstr1			idType;
-} grm_elem_base;
-
-typedef struct grm_elem
-{
-	id_t			id;
-	wstr1			name;
-
-	wstr1			idtype;
-
-	GRM_ELEM_TYPE	type;
-	union
-	{
-		grm_relation_data	relation;
-		grm_word_data		word;
-	};
-} grm_elem;

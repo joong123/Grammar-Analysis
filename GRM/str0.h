@@ -78,8 +78,8 @@ str0		Str0PrependBy(str0 str, const ch* pcs, size_t s, size_t len);
 // 3. _InitWStr1
 
 
-#define STR1_CAP0						16
-#define WSTR1_CAP0						8
+#define STR1_CAP0						24
+#define WSTR1_CAP0						12
 #define WSTR1_ISNULLSTR(pwstr)			(NULL == (pwstr) || STR_ISNULL((pwstr)->status))
 #define WSTR1_ISNULL(pwstr)				(STR_ISNULL((pwstr)->status))
 #define WSTR1_ISNULLO(wstr)				(STR_ISNULL((wstr).status))
@@ -99,6 +99,8 @@ str0		Str0PrependBy(str0 str, const ch* pcs, size_t s, size_t len);
 #define WSTR1_LENGOBAL(pwstr)			(WSTR1_ISNULL(pwstr) ? 0 : WSTR1_LEN(pwstr))
 #define WSTR1_SETLEN(pwstr, len)		(if (!WSTR1_ISLOCAL(pwstr)) (pwstr)->len = len;)
 #define WSTR1_POS(pwstr, idx)			(WSTR1_STR(pwstr) + (idx))
+#define WSTR1_BACK(pwstr, idx)			(WSTR1_POS((pwstr), (WSTR1_LEN(pwstr) - 1)))
+#define WSTR1_END(pwstr)				(WSTR1_POS((pwstr), (WSTR1_LEN(pwstr))))
 
 #define WSTR1_MOVE(pwstr, s, d, len)	(memmove(WSTR1_POS((pwstr), (d)), WSTR1_POS((pwstr), (s)), (len) * sizeof(wch)))
 
@@ -128,6 +130,34 @@ typedef struct wstring1
 	};
 	// bool			bWide;
 } wstr1;
+
+typedef struct string2
+{
+	STR0_STATUS		status;
+	union
+	{
+		struct {
+			ch*		s1;
+			size_t	len;
+		};
+		ch			s0[STR1_CAP0];
+	};
+	size_t			cap;
+} str2;
+
+typedef struct wstring2
+{
+	STR0_STATUS		status;
+	union {
+		struct {
+			wch*	s1;
+			size_t	len;
+		};
+		wch			s0[WSTR1_CAP0];
+	};
+	size_t			cap;
+	// bool			bWide;
+} wstr2;
 
 
 // make (#24)
@@ -263,7 +293,7 @@ int32_t		_WStr1ShrinkByLazy(wstr1 * str, size_t dLen);
 int32_t		_WStr1ToOwn(wstr1 * str, size_t recap = 0);
 int32_t		_WStr1ToLocal(wstr1 * str, size_t recap = 0);
 int32_t		_WStr1Overlap(const wstr1* str, const wstr1* str2);
-int32_t		_WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s2, size_t len2);
+int32_t		_WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s, size_t len);
 bool		_WStr1RefMgrd(const wstr1* str, const wstr1* str2);
 int32_t		_WStr1Release(wstr1* str);
 int32_t		_WStr1Abandon(wstr1* str);
@@ -286,10 +316,10 @@ int32_t		WStr1Equals(const wstr1* str, const wstr1* str2);
 int32_t		WStr1EqualsTmp(const wstr1 tmp1, const wstr1 tmp2);
 int32_t		WStr1EqualsCH(const wstr1* str, wch c);
 int32_t		WStr1EqualsCS(const wstr1* str, const wch* pcs);
-int32_t		WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len2);
-int32_t		WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s2, size_t len2);
-int32_t		WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s2, size_t len2);
-int32_t		WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s2, size_t len2);
+int32_t		WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len);
+int32_t		WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s, size_t len);
+int32_t		WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s, size_t len);
+int32_t		WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s, size_t len);
 int32_t		WStr1EqualsI(const wstr1* str, const wstr1* str2);
 int32_t		WStr1EqualsITmp(const wstr1 tmp1, const wstr1 tmp2);
 int32_t		WStr1EqualsICH(const wstr1* str, wch c);
@@ -341,6 +371,7 @@ int32_t		WStr1Remove1CSBy(wstr1* str, const wch* pcs, const size_t s2, const siz
 int32_t		WStr1Remove1(wstr1* str, wstr1* str2, size_t pos, size_t* posRemain = NULL);
 int32_t		WStr1Remove1Tmp(wstr1* str, wstr1 tmp, size_t pos, size_t* posRemain = NULL);
 int32_t		_WStr1InsertCSBy2(wstr1* str, size_t pos, const wch* pcs, size_t s2, size_t len2);
+int32_t		_WStr1InsertCSBy2Checked(wstr1* str, size_t pos, const wch* pcs, size_t s2, size_t len2);
 int32_t		WStr1InsertCH(wstr1* str, size_t pos, wch c);
 int32_t		WStr1InsertTmp(wstr1* str, size_t pos, wstr1 tmp);
 int32_t		WStr1Insert(wstr1* str, size_t pos, const wstr1* str2);

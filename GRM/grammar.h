@@ -10,9 +10,12 @@
 
 
 // THIS+NEXT	IDENTIFIER, SIGNS --- NDS, WSS, DIGITS, UNKNOWNS
-int32_t AcceptOprGrammar(const ch* p, size_t len, ptrlist1);
+int32_t AcceptOprGrammar(const ch* p, size_t len, ptrlist1*);
 
 
+//
+// Derived-Formula Grammar System
+//
 typedef struct grammar_elem_mgr
 {
 	ptrmap0			elemsDef;

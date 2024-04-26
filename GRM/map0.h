@@ -19,6 +19,8 @@ typedef struct ptrmap0node
 	ptrmap0node*	prev;
 	ptrmap0node*	nextBuk;
 } ptrmap0node;
+// next/prev cross buk
+// every node set nextBuk
 
 typedef ptrmap0node** ptrmap0;
 
@@ -61,6 +63,7 @@ typedef struct ptrmap1info
 	funMap0DispVal		fDispVal;
 } ptrmap1info;
 void PtrMap1InfoInit(ptrmap1info* info);
+
 typedef struct ptrmap1
 {
 	size_t			cap;
@@ -87,6 +90,7 @@ inline map0id_t PtrMapIDDef(void* key)
 #define PTRMAP1_CAPEXTRATEDEF		(2.0)
 #define PTRMAP1_CAPEXTNDEF			(8)
 #define PTRMAP1_RATESTD				(0.75)
+#define PTRMAP1_ISBUKHEAD(n, prev)	(NULL == (prev) || (NULL != (prev) && (n) == (prev)->nextBuk))
 
 
 void		PtrMap1Init(ptrmap1* const map);
@@ -145,15 +149,15 @@ inline void	TestPtrMap1()
 
 	PtrMap1Info(&map0, &info);
 	printf("MakeBy, ret=%d\ninfo:%s\n", ret, info);
-	safefreeandreset((void**) & info);
+	safefreereset((void**) & info);
 	ret = PtrMap1Add(&map0, NULL, NULL);
 	PtrMap1Info(&map0, &info);
 	printf("MakeBy, ret=%d\ninfo:%s\n", ret, info);
-	safefreeandreset((void**) &info);
+	safefreereset((void**) &info);
 	ret = PtrMap1Add(&map0, (void*)3, NULL);
 	PtrMap1Info(&map0, &info);
 	printf("MakeBy, ret=%d\ninfo:%s\n", ret, info);
-	safefreeandreset((void**)&info);
+	safefreereset((void**)&info);
 	printf("==== TestPtrMap1 End ====\n");
 }
 

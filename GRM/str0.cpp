@@ -78,6 +78,8 @@ int32_t _WCSEqualCI(const wch* p1, size_t len, const wch* p2, size_t len2)
 
 static const size_t szStr1 = sizeof(str1);
 static const size_t szWStr1 = sizeof(wstr1);
+static const size_t szStr2 = sizeof(str2);
+static const size_t szWStr2 = sizeof(wstr2);
 static const size_t szWStr1Local = (sizeof(wch*) + sizeof(size_t)) / sizeof(wch);
 const wstr1 wstr1Def = WStr1Default();
 
@@ -1250,10 +1252,9 @@ int32_t _WStr1Overlap(const wstr1* str, const wstr1* str2)
 		WSTR1_STR(str2), WSTR1_LEN(str2));
 }
 
-int32_t _WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s2, size_t len2)
+int32_t _WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s, size_t len)
 {
-	return _PtrOverlapWCH(WSTR1_STR(str), WSTR1_LEN(str),
-		pcs + s2, len2);
+	return _PtrOverlapWCH(WSTR1_STR(str), WSTR1_LEN(str), pcs + s, len);
 }
 
 bool _WStr1RefMgrd(const wstr1* str, const wstr1* str2)
@@ -1414,7 +1415,7 @@ int32_t WStr1EqualsCS(const wstr1* str, const wch* pcs)
 	return _WCSEqual(ps1, WSTR1_LEN(str), pcs, wcslen(pcs));
 }
 
-int32_t WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len2)
+int32_t WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1422,10 +1423,10 @@ int32_t WStr1EqualsCSBy(const wstr1* str, const wch* pcs, size_t len2)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WCSEqual(ps1, WSTR1_LEN(str), pcs, len2);
+	return _WCSEqual(ps1, WSTR1_LEN(str), pcs, len);
 }
 
-int32_t WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s2, size_t len2)
+int32_t WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s, size_t len)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1433,10 +1434,10 @@ int32_t WStr1EqualsCSBy2(const wstr1* str, const wch* pcs, size_t s2, size_t len
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WCSEqual(ps1, WSTR1_LEN(str), pcs + s2, len2);
+	return _WCSEqual(ps1, WSTR1_LEN(str), pcs + s, len);
 }
 
-int32_t WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s2, size_t len2)
+int32_t WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pcs, size_t s, size_t len)
 {
 	if (NULL == str || NULL == pcs)
 		return GRET_NULL;
@@ -1448,10 +1449,10 @@ int32_t WStr1EqualsCSBy3(const wstr1* str, size_t s1, size_t len1, const wch* pc
 		return GRET_INVIDX;
 
 	const wch* const ps1 = WSTR1_STR(str);
-	return _WCSEqual(ps1 + s1, len1, pcs + s2, len2);
+	return _WCSEqual(ps1 + s1, len1, pcs + s, len);
 }
 
-int32_t WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s2, size_t len2)
+int32_t WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s, size_t len)
 {
 	if (NULL == pcs)
 		return GRET_NULL;
@@ -1459,7 +1460,7 @@ int32_t WStr1EqualsTmpCSBy2(wstr1 tmp, const wch* pcs, size_t s2, size_t len2)
 		return GRET_INVSTATUS;
 
 	const wch* const ps1 = WSTR1_STRO(tmp);
-	return _WCSEqual(ps1, WSTR1_LENO(tmp), pcs + s2, len2);
+	return _WCSEqual(ps1, WSTR1_LENO(tmp), pcs + s, len);
 }
 
 int32_t WStr1EqualsI(const wstr1* str, const wstr1* str2)
@@ -1630,7 +1631,6 @@ int32_t _WStr1SubstrSelfBy(wstr1* str, size_t s, size_t len)
 	}
 
 	WSTR1_MOVE(str, s, 0, len);
-
 	return _WStr1RelenLazy(str, len);
 }
 
@@ -1743,14 +1743,29 @@ int32_t _WStr1InsertCSBy2(wstr1* str, size_t pos, const wch* pcs, size_t s2, siz
 	RET_ON_NEG(ret);
 
 	pcs += s2;
+	const size_t nMV0dst = lenStr1 - pos;
+	WSTR1_MOVE(str, pos, pos + len2, nMV0dst);
+	memmove(WSTR1_POS(str, pos), pcs, len2 * sizeof(wch));
+	return GRET_SUCCEED;
+}
 
+int32_t _WStr1InsertCSBy2Checked(wstr1* str, size_t pos, const wch* pcs, size_t s2, size_t len2)
+{
+	const size_t lenStr1 = WSTR1_LEN(str);
+	if (pos > lenStr1)
+		return GRET_INVIDX;
 
-	wch* const pMV0dst = WSTR1_STR(str) + pos + len2;
+	const int32_t ret = _WStr1ExtendBy(str, len2);
+	RET_ON_NEG(ret);
+
+	pcs += s2;
+
+	wch* const pMV0dst = WSTR1_POS(str, pos + len2);
 	const size_t nMV0dst = lenStr1 - pos;
 	if (!_PtrOverlapWCH(pMV0dst, nMV0dst, pcs, len2))
 	{
-		WSTR1_MOVE(str, pos, pos + len2, lenStr1 - pos);
-		memmove(WSTR1_STR(str) + pos, pcs, len2 * sizeof(wch));
+		WSTR1_MOVE(str, pos, pos + len2, nMV0dst);
+		memmove(WSTR1_POS(str, pos), pcs, len2 * sizeof(wch));
 	}
 	else
 	{
@@ -1758,8 +1773,8 @@ int32_t _WStr1InsertCSBy2(wstr1* str, size_t pos, const wch* pcs, size_t s2, siz
 		if (NULL == pTmp)
 			return GRET_MALLOC;
 		memmove(pTmp, pcs, len2 * sizeof(wch));
-		WSTR1_MOVE(str, pos, pos + len2, lenStr1 - pos);
-		memmove(WSTR1_STR(str) + pos, pTmp, len2 * sizeof(wch));
+		WSTR1_MOVE(str, pos, pos + len2, nMV0dst);
+		memmove(WSTR1_POS(str, pos), pTmp, len2 * sizeof(wch));
 		safefree(pTmp);
 	}
 
@@ -1852,7 +1867,13 @@ int32_t WStr1PrependTmp(wstr1* str, wstr1 tmp)
 
 int32_t _WStr1PrependCSBy2(wstr1* str, const wch* pcs, size_t s2, size_t len2)
 {
-	return _WStr1InsertCSBy2(str, 0, pcs, s2, len2);
+	const int32_t ret = _WStr1ExtendBy(str, len2);
+	RET_ON_NEG(ret);
+	pcs += s2;
+	const size_t nMV0dst = WSTR1_LEN(str);
+	WSTR1_MOVE(str, 0, len2, nMV0dst);
+	memmove(WSTR1_POS(str, 0), pcs, len2 * sizeof(wch));
+	return GRET_SUCCEED;
 }
 
 int32_t WStr1PrependCH(wstr1* str, wch c)
@@ -1910,7 +1931,12 @@ int32_t WStr1PrependCSBy2(wstr1* str, const wch* pcs, size_t s2, size_t len2)
 
 int32_t _WStr1AddCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len)
 {
-	return _WStr1InsertCSBy2(str, WSTR1_LEN(str), pcs, s, len);
+	const int32_t ret = _WStr1ExtendBy(str, len);
+	RET_ON_NEG(ret);
+
+	pcs += s;
+	memmove(WSTR1_END(str), pcs, len * sizeof(wch));
+	return GRET_SUCCEED;
 }
 
 int32_t WStr1AddCH(wstr1* str, wch c)
@@ -2007,5 +2033,10 @@ int64_t hashWStr_Def64(const wch* pcs, size_t len)
 
 #pragma endregion STR1
 
+
+#pragma region STR2
+
+
+#pragma endregion STR2
 
 static const size_t szHashWStr = sizeof(hashwstr);

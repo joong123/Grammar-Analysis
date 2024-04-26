@@ -1,6 +1,13 @@
 #include "grammarbase.h"
 
 
+const size_t sizeGrmWordDef = sizeof(grm_word_def);
+const size_t sizeGrmRelationDef = sizeof(grm_relation_def);
+const size_t sizeGrmElemDef = sizeof(grm_elem_def);
+
+const size_t sizeGrmWordData = sizeof(grm_word_data);
+const size_t sizeGrmRelationData = sizeof(grm_relation_data);
+const size_t sizeGrmElemData = sizeof(grm_elem);
 
 static grammar_baseelem_w_def GRM_BASEELEMW_INFO[] =
 {

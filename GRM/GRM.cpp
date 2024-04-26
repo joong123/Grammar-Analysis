@@ -86,6 +86,16 @@ int main()
     cout << typeid(ppca).name() << endl;
     cout << typeid(cpi).name() << endl;
 
+    typedef void (*funT0)(void);
+    funT0 ft1 = NULL;
+    ft1 = NULL;
+    const funT0 ft2 = NULL;
+    funT0 const ft3 = NULL;
+    cout << typeid(funT0).name() << endl;
+    cout << typeid(const funT0).name() << endl;
+    cout << typeid(funT0 const).name() << endl;
+    //cout << typeid(const funT0 const).name() << endl;
+
 
 
 
