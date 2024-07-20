@@ -15,30 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GRM.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="grammar.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="grammarbase.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="list0.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="map0.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="str0.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="tree0.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="def0.h">
+    <ClInclude Include="framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="grammar.h">
@@ -62,5 +42,31 @@
     <ClInclude Include="tree0.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="grammar.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="grammarbase.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="list0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="map0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="str0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tree0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

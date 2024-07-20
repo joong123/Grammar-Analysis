@@ -1,7 +1,9 @@
 ﻿#include <vector>
 #include <iostream>
+#define LIB_IMPPORT
 #include "grammar.h"
 #include "tree0.h"
+
 
 using namespace std;
 

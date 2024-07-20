@@ -1,3 +1,5 @@
+#include "pch.h"
+#define LIB_EXPORT
 #include "grammarbase.h"
 
 

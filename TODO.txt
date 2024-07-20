@@ -1,0 +1,32 @@
+WStr1Make...需要判断相同str实例，需要解决内存重叠，不要求一样的状态，只设最优状态，swap mode		DONE
+Wstr1CopyCS和wsTR1MakeCS功能一致，省略		DONE
+pure mode不需要判断相同实例，内存重叠，不用swap mode
+其他copy，需要判断相同str实例，需要解决内存重叠，还要拷贝str状态，swap mode
+增肌WStr1CopyBy2	DONE
+_WStr1MakeCSFromPos要调用_WStr1MakeCSBy2？不需要			DONE
+
+_WStr1PureCopyBy2优化？
+增加_WSTR1CopyCSBy2/FromPos, 需要判断内存重叠？不需要，_WSTR1CopyCSBy2和_WSTR1MakeCSBy2逻辑一致，都要判断相同实例，内存重叠了，同第2点
+SET_PTRVAL使用统一？
+统一提供Pure或不提供？
+WStr1Substr功能和Wstr1Make重叠，省略？ 不省略
+
+FromPos模式参数问题？
+_WStr1ToOwn状态一致时是否操作？ 不操作，因为ToOwn不应包含Recap功能，因为Recap里用到了ToOwn，ToOwn仅提供状态转移时设置新cap
+_WStr1InitLen不调用initcap？	没事，虽然有点耦合，但是功能重叠代码重用
+_WStr1ReLen调用Recap？		不调用，保持低耦合，而且分支无法合并，功能不一致
+_WStr1Relen分支合并？		不行
+_WStr1ToOwn swap mode
+
+WStr1Deref  ToOwn或者Tolocal条件判断
+		
+		解决同实例重叠		状态拷贝	Copy/和Make版本功能完全一致
+Make		Y			N		N
+MakeCS		Y			DNA		Y
+PureMake	N			N		N
+PureMakeCS	N			DNA		Y
+
+Copy		Y			Y		N
+CopyCS		Y			DNA		Y
+PureCopy	N			Y		N
+PureCopyCS	N			DNA		Y

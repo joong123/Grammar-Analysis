@@ -1,7 +1,7 @@
-#include <stdlib.h>
-
+#include "pch.h"
+#define LIB_EXPORT
 #include "map0.h"
-#include "def0.h"
+#include <stdlib.h>
 #include <stdio.h>
 
 

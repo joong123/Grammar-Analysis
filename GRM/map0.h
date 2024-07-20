@@ -47,6 +47,8 @@ typedef int32_t(*funMap0MoveVal)(void*, void*);
 typedef int32_t(*funMap0ReleaseKey )(void*);
 typedef int32_t(*funMap0ReleaseVal)(void*);
 
+typedef bool(*funMap0LessThanVal)(void*, void*);
+
 typedef struct ptrmap1info
 {
 	funMap0ID			fID;
@@ -96,7 +98,7 @@ inline map0id_t PtrMapIDDef(void* key)
 void		PtrMap1Init(ptrmap1* const map);
 int32_t		PtrMap1Make(ptrmap1* const map, ptrmap1info* pInfo = NULL);
 int32_t		PtrMap1MakeBy(ptrmap1* const map, size_t cap, ptrmap1info* pInfo = NULL);
-int32_t		PtrMap1MakeByPure(ptrmap1* const map, size_t cap, ptrmap1info* pInfo = NULL);
+LIB_API int32_t		PtrMap1MakeByPure(ptrmap1* const map, size_t cap, ptrmap1info* pInfo = NULL);
 int32_t		_PtrMap1MakeNode(const ptrmap1* const map, void* const key, void* const val, ptrmap0node** pnode);
 int32_t		_PtrMap1ReleaseNode(ptrmap1* const map, ptrmap0node* const pnode);
 int32_t		_PtrMap1CopyNode(ptrmap1* const map, ptrmap0node* const pnode, ptrmap0node** pnodeo);
@@ -110,7 +112,7 @@ ptrmap0node* PtrMap1Begin(ptrmap1* const map);
 const ptrmap0node* PtrMap1BeginC(const ptrmap1* const map);
 ptrmap0node* PtrMap1Next(const ptrmap0node* node);
 
-int32_t		PtrMap1Add(ptrmap1* const map, void* const key, void* const val);
+LIB_API int32_t	PtrMap1Add(ptrmap1* const map, void* const key, void* const val);
 int32_t		PtrMap1GetByKey(ptrmap1* const map, void* const key, void** pval);
 int32_t		PtrMap1GetByVal(ptrmap1* const map, void* const val, void** pkey);
 int32_t		PtrMap1RemoveKey(ptrmap1* const map, void* const key);
@@ -137,7 +139,7 @@ int32_t		PtrMap1AddMap(ptrmap1* const map, const ptrmap1* const map2);
 int32_t		PtrMap1AllKey(ptrmap1* const map, ptrlist1* const pls);
 int32_t		PtrMap1AllValue(ptrmap1* const map, ptrlist1* const pls);
 
-int32_t		PtrMap1Info(const ptrmap1* const map, char** str);
+LIB_API int32_t		PtrMap1Info(const ptrmap1* const map, char** str);
 
 #include <stdio.h>
 inline void	TestPtrMap1()
