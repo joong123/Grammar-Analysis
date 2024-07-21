@@ -249,21 +249,22 @@ typedef struct ptrlist1
 int32_t		_List1ExtendDLen(list1* const pls, const size_t dLen);
 int32_t		_List1ReCap(list1* const pls, const size_t cap);
 int32_t		_List1FromPure(list1* const pls, const size_t size, void* const pls2, const size_t len);
-void		List1Init0(list1* const pls);
-int32_t		List1Make(list1* const pls, const size_t size);
-int32_t		List1MakePure(list1* const pls, const size_t size);
-int32_t		List1MakePureBy(list1* const pls, const size_t cap, const size_t size);
-int32_t		List1From(list1* const pls, const size_t size, void* const pls2, const size_t len);
-int32_t		List1FromPure(list1* const pls, const size_t size, void* const pls2, const size_t len);
-int32_t		List1Add(list1* const pls, void* const pElem);
-int32_t		List1Pop(list1* const pls, void* const pElem);
-int32_t		List1PopFront(list1* const pls, void* const pElem);
-int32_t		List1Remove(list1* const pls);
-int32_t		List1RemoveFront(list1* const  pls);
-int32_t		List1Clear(list1* const pls);// clear abandon
-int32_t		List1ClearFree(list1* const pls, const funFreeElem funFree);
-int32_t		List1Release(list1* const pls);// release abandon
-int32_t		List1ReleaseFree(list1* const pls, const funFreeElem funFree);
+
+LIB_API void	List1Init0(list1* const pls);
+LIB_API int32_t	List1Make(list1* const pls, const size_t size);
+LIB_API int32_t	List1MakePure(list1* const pls, const size_t size);
+LIB_API int32_t	List1MakePureBy(list1* const pls, const size_t cap, const size_t size);
+LIB_API int32_t	List1From(list1* const pls, const size_t size, void* const pls2, const size_t len);
+LIB_API int32_t	List1FromPure(list1* const pls, const size_t size, void* const pls2, const size_t len);
+LIB_API int32_t	List1Add(list1* const pls, void* const pElem);
+LIB_API int32_t	List1Pop(list1* const pls, void* const pElem);
+LIB_API int32_t	List1PopFront(list1* const pls, void* const pElem);
+LIB_API int32_t	List1Remove(list1* const pls);
+LIB_API int32_t	List1RemoveFront(list1* const  pls);
+LIB_API int32_t	List1Clear(list1* const pls);// clear abandon
+LIB_API int32_t	List1ClearFree(list1* const pls, const funFreeElem funFree);
+LIB_API int32_t	List1Release(list1* const pls);// release abandon
+LIB_API int32_t	List1ReleaseFree(list1* const pls, const funFreeElem funFree);
 
 #pragma endregion list1
 
@@ -320,39 +321,39 @@ inline void		_List2SetAtMove(list2* const pls, const size_t idx, void* const pEl
 inline void		_List2GetAtCopy(list2* const pls, const size_t idx, void* const pElem);
 inline void		_List2GetAtMove(list2* const pls, const size_t idx, void* const pElem);
 
-void			List2Init0(list2* const pls);
+LIB_API void		List2Init0(list2* const pls);
 LIB_API int32_t		List2Init(list2* const pls, const size_t size, const list0info* const pinfo = NULL);
-int32_t			List2InitPure(list2* const pls, const size_t size, const list0info* const pinfo = NULL);
-int32_t			List2InitBy(list2* const pls, const size_t cap, const size_t size, const list0info* const pinfo = NULL);
-int32_t			List2InitByPure(list2* const ls, const size_t cap, const size_t size, const list0info* const pinfo = NULL);
-int32_t			List2Clear(list2* const pls);
-int32_t			List2Abandon(list2* const pls);
-int32_t			List2Release(list2* const pls);
-int32_t			List2ReleaseAbandon(list2* const pls);
+LIB_API int32_t		List2InitPure(list2* const pls, const size_t size, const list0info* const pinfo = NULL);
+LIB_API int32_t		List2InitBy(list2* const pls, const size_t cap, const size_t size, const list0info* const pinfo = NULL);
+LIB_API int32_t		List2InitByPure(list2* const ls, const size_t cap, const size_t size, const list0info* const pinfo = NULL);
+LIB_API int32_t		List2Clear(list2* const pls);
+LIB_API int32_t		List2Abandon(list2* const pls);
+LIB_API int32_t		List2Release(list2* const pls);
+LIB_API int32_t		List2ReleaseAbandon(list2* const pls);
 
 LIB_API void*		List2At(list2* const pls, const size_t idx);
-void*			List2Begin(list2* const pls);
-void*			List2End(list2* const pls);
-void*			List2Next(list2* const pls, void* const pElem);
-void*			List2SafeNext(list2* const pls, void* const pElem);
+LIB_API void*		List2Begin(list2* const pls);
+LIB_API void*		List2End(list2* const pls);
+LIB_API void*		List2Next(list2* const pls, void* const pElem);
+LIB_API void*		List2SafeNext(list2* const pls, void* const pElem);
 // operation
 LIB_API int32_t		List2Add(list2* const pls, void* const pElem);
-int32_t			List2AddMove(list2* const pls, void* const pElem);
-int32_t			List2AddFront(list2* const pls, void* const pElem);
-int32_t			List2AddFrontMove(list2* const pls, void* const pElem);
-int32_t			_List2RemoveIn(list2* const pls, const size_t idx, const size_t num);
-int32_t			List2RemoveAt(list2* const pls, const size_t idx);
-int32_t			List2RemoveFront(list2* const pls, const size_t num = 1);
-int32_t			List2RemoveBack(list2* const pls, const size_t num = 1);
-int32_t			List2RemoveIn(list2* const pls, const size_t idx, const size_t num);
-int32_t			List2RemoveFrom(list2* const pls, const size_t idx);
-int32_t			List2PopAt(list2* const pls, const size_t idx, void* const pElem);
-int32_t			List2PopFront(list2* const pls, void* const pElem);
-int32_t			List2PopBack(list2* const pls, void* const pElem);
-int32_t			List2Insert(list2* const pls, void* const pElem, const size_t idx);
-int32_t			List2InsertMove(list2* const pls, void* const pElem, const size_t idx);
+LIB_API int32_t		List2AddMove(list2* const pls, void* const pElem);
+LIB_API int32_t		List2AddFront(list2* const pls, void* const pElem);
+LIB_API int32_t		List2AddFrontMove(list2* const pls, void* const pElem);
+int32_t				_List2RemoveIn(list2* const pls, const size_t idx, const size_t num);
+LIB_API int32_t		List2RemoveAt(list2* const pls, const size_t idx);
+LIB_API int32_t		List2RemoveFront(list2* const pls, const size_t num = 1);
+LIB_API int32_t		List2RemoveBack(list2* const pls, const size_t num = 1);
+LIB_API int32_t		List2RemoveIn(list2* const pls, const size_t idx, const size_t num);
+LIB_API int32_t		List2RemoveFrom(list2* const pls, const size_t idx);
+LIB_API int32_t		List2PopAt(list2* const pls, const size_t idx, void* const pElem);
+LIB_API int32_t		List2PopFront(list2* const pls, void* const pElem);
+LIB_API int32_t		List2PopBack(list2* const pls, void* const pElem);
+LIB_API int32_t		List2Insert(list2* const pls, void* const pElem, const size_t idx);
+LIB_API int32_t		List2InsertMove(list2* const pls, void* const pElem, const size_t idx);
 LIB_API int32_t		List2GetAt(list2* const pls, const size_t idx, void* const pElem);
-int32_t			List2GetFront(list2* const pls, void* const pElem);
+LIB_API int32_t		List2GetFront(list2* const pls, void* const pElem);
 int32_t			List2GetBack(list2* const pls, void* const pElem);
 int32_t			List2SetAt(list2* const pls, void* const pElem, const size_t idx);
 int32_t			List2SetAtMove(list2* const pls, void* const pElem, const size_t idx);
@@ -463,6 +464,11 @@ int32_t			PtrList2InsertListDeepCopy(ptrlist2* const pls, ptrlist2* const pls2, 
 inline void TestList()
 {
 	printf("TestList Begin..\n");
+
+	list1 ls1;
+	List1MakePure(&ls1, sizeof(int));
+	int i0 = 0;
+	List1Add(&ls1, &i0);
 
 	list2 ls0;
 	int ret = LIST2INIT(&ls0, int);

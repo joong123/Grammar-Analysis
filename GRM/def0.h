@@ -41,7 +41,7 @@
 
 #ifndef LIB_API
 	#ifdef LIB_IMPORT
-		#define LIB_API __declspec(dllimport)
+		#define LIB_API __declspec(dllimport)// for chain import in .cpp
 	#elif defined LIB_EXPORT
 		#define LIB_API __declspec(dllexport)
 	#else

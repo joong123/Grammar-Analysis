@@ -12,10 +12,10 @@
 #define STR_ISREF(status)			(STR0S_REF == (status))
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+//#ifdef __cplusplus
+//extern "C"
+//{
+//#endif
 
 
 enum STR0_STATUS
@@ -177,9 +177,44 @@ typedef struct wstring2
 } wstr2;
 
 
-// make (#24)
+// design:
+//  copy op:
+//		copy both content & status
+//  make op:
+//		copy content only
+
+//
+// WStr1MakeCS			-> _WStr1MakeCSBy2
+// WStr1MakeCSBy		-> WStr1MakeCSBy2
+// WStr1MakeCSBy2		-> _WStr1MakeCSBy2
+// WStr1MakeCSFromPos	-> _WStr1MakeCSBy2
+// WStr1Make			-> _WStr1MakeBy2
+// WStr1MakeBy			-> WStr1MakeBy2
+// WStr1MakeBy2			-> _WStr1MakeBy2
+// WStr1MakeFromPos		-> _WStr1MakeBy2
+// 
+// WStr1PureMakeCS		-> _WStr1PureMakeCSBy2
+// WStr1PureMakeCSBy	-> WStr1PureMakeCSBy2
+// WStr1PureMakeCSBy2	-> _WStr1PureMakeCSBy2
+// WStr1PureMakeCSFromPos->_WStr1PureMakeCSBy2
+// WStr1PureMake		-> _WStr1PureMakeBy2
+// WStr1PureMakeBy		-> WStr1PureMakeBy2
+// WStr1PureMakeBy2		-> _WStr1PureMakeBy2
+// WStr1PureMakeFromPos	-> _WStr1PureMakeBy2
+// 
+// WStr1Copy			-> _WStr1CopyBy2
+// WStr1CopyBy			-> WStr1CopyBy2
+// WStr1CopyBy2			-> _WStr1CopyBy2
+// WStr1CopyFromPos		-> _WStr1CopyBy2
+// WStr1PureCopy		-> _WStr1PureCopyBy2
+// WStr1PureCopyBy		-> WStr1PureCopyBy2
+// WStr1PureCopyBy2		-> _WStr1PureCopyBy2
+// WStr1PureCopyFromPos	-> _WStr1PureCopyBy2
+//
+
 LIB_API wstr1		WStr1Default();// default string
 LIB_API wstr1		WStr1Inited();// initial string
+// make (#23)
 LIB_API wstr1		MakeWStr1CH(wch c, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1CS(const wch* pcs, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1CSBy(const wch* pcs, size_t len, int32_t* pRet = NULL);
@@ -191,8 +226,8 @@ LIB_API wstr1		MakeWStr1By(const wstr1* other, size_t len, int32_t* pRet = NULL)
 LIB_API wstr1		MakeWStr1By2(const wstr1* other, size_t s, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1FromPos(const wstr1* other, size_t s, int32_t* pRet = NULL);
 LIB_API int32_t		WStr1MakeDefault(wstr1* str);
-LIB_API int32_t		_WStr1MakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
-LIB_API int32_t		_WStr1MakeCSFromPos(wstr1* str, const wch* pcs, size_t s, size_t te);
+int32_t				_WStr1MakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
+int32_t				_WStr1MakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1MakeCH(wstr1* str, wch c);
 LIB_API int32_t		WStr1MakeCS(wstr1* str, const wch* pcs);
 LIB_API int32_t		WStr1MakeCSBy(wstr1* str, const wch* pcs, size_t len);
@@ -205,8 +240,8 @@ LIB_API int32_t		WStr1MakeBy2(wstr1* str, const wstr1* other, size_t s, size_t l
 LIB_API int32_t		WStr1MakeFromPos(wstr1* str, const wstr1* other, size_t s);
 // pure make (#13)
 LIB_API int32_t		WStr1PureMakeDefault(wstr1* str);
-LIB_API int32_t		_WStr1PureMakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
-LIB_API int32_t		_WStr1PureMakeCSFromPos(wstr1* str, const wch* pcs, size_t s, size_t te);
+int32_t				_WStr1PureMakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
+int32_t				_WStr1PureMakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureMakeCH(wstr1* str, wch c);
 LIB_API int32_t		WStr1PureMakeCS(wstr1* str, const wch* pcs);
 LIB_API int32_t		WStr1PureMakeCSBy(wstr1* str, const wch* pcs, size_t len);
@@ -217,39 +252,27 @@ LIB_API int32_t		WStr1PureMake(wstr1* str, const wstr1* other);
 LIB_API int32_t		WStr1PureMakeBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1PureMakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureMakeFromPos(wstr1 * str, const wstr1* other, size_t s);
-// copy (#19)
-//LIB_API wstr1		CopyWStr1CS(const wch* pcs, int32_t* pRet = NULL);
-//LIB_API wstr1		CopyWStr1CSBy(const wch* pcs, size_t len, int32_t* pRet = NULL);
-//LIB_API wstr1		CopyWStr1CSBy2(const wch* pcs, size_t s, size_t len, int32_t* pRet = NULL);
-//LIB_API wstr1		CopyWStr1CSFromPos(const wch* pcs, size_t s, int32_t* pRet = NULL);
+// copy (#11)
 LIB_API wstr1		CopyWStr1Tmp(const wstr1 tmp, int32_t* pRet = NULL);
 LIB_API wstr1		CopyWStr1(const wstr1* str, int32_t* pRet = NULL);
 LIB_API wstr1		CopyWStr1By(const wstr1* str, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		CopyWStr1By2(const wstr1* str, size_t s, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		CopyWStr1FromPos(const wstr1* str, size_t s, int32_t* pRet = NULL);
-//LIB_API int32_t		WStr1CopyCS(wstr1* str, const wch* pcs);
-//LIB_API int32_t		WStr1CopyCSBy(wstr1* str, const wch* pcs, size_t len);
-//LIB_API int32_t		WStr1CopyCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
-//LIB_API int32_t		WStr1CopyCSFromPos(wstr1* str, const wch* pcs, size_t s);
-LIB_API int32_t		_WStr1CopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
+int32_t				_WStr1CopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1CopyTmp(wstr1* str, const wstr1 tmp);
 LIB_API int32_t		WStr1Copy(wstr1* str, const wstr1* other);
 LIB_API int32_t		WStr1CopyBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1CopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1CopyFromPos(wstr1* str, const wstr1* other, size_t s);
-// pure copy (#11)
-//LIB_API int32_t		WStr1PureCopyCS(wstr1* str, const wch* pcs);
-//LIB_API int32_t		WStr1PureCopyCSBy(wstr1* str, const wch* pcs, size_t len);
-//LIB_API int32_t		WStr1PureCopyCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
-//LIB_API int32_t		WStr1PureCopyCSFromPos(wstr1* str, const wch* pcs, size_t s);
-LIB_API int32_t		_WStr1PureCopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
-LIB_API int32_t		_WStr1PureCopyFromPos(wstr1* str, const wstr1* other, size_t s, size_t te);
+// pure copy (#6)
+int32_t				_WStr1PureCopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureCopyTmp(wstr1* str, const wstr1 tmp);
 LIB_API int32_t		WStr1PureCopy(wstr1* str, const wstr1* other);
 LIB_API int32_t		WStr1PureCopyBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1PureCopyBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureCopyFromPos(wstr1* str, const wstr1* other, size_t s);
-// move (#1)
+// move (#2)
+int32_t				_WStr1Move(wstr1* str, wstr1* other);
 LIB_API int32_t		WStr1Move(wstr1* str, wstr1* other);
 // ref (#18)
 LIB_API wstr1		RefWStr1CS(wch* pcs, int32_t* pRet = NULL);
@@ -260,8 +283,8 @@ LIB_API wstr1		RefWStr1(const wstr1* str, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1By(const wstr1* str, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1By2(const wstr1* str, size_t s, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1FromPos(const wstr1* str, size_t s, int32_t* pRet = NULL);
-LIB_API int32_t		_WStr1RefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
-LIB_API int32_t		_WStr1RefCSFromPos(wstr1* str, wch* pcs, size_t s, size_t te);
+int32_t				_WStr1RefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
+int32_t				_WStr1RefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1RefCS(wstr1* str, wch* pcs);
 LIB_API int32_t		WStr1RefCSBy(wstr1* str, wch* pcs, size_t len);
 LIB_API int32_t		WStr1RefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
@@ -271,8 +294,8 @@ LIB_API int32_t		WStr1RefBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1RefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1RefFromPos(wstr1* str, const wstr1* other, size_t s);
 // pure ref (#10)
-LIB_API int32_t		_WStr1PureRefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
-LIB_API int32_t		_WStr1PureRefCSFromPos(wstr1* str, wch* pcs, size_t s, size_t te);
+int32_t				_WStr1PureRefCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
+int32_t				_WStr1PureRefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureRefCS(wstr1* str, wch* pcs);
 LIB_API int32_t		WStr1PureRefCSBy(wstr1* str, wch* pcs, size_t len);
 LIB_API int32_t		WStr1PureRefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
@@ -282,6 +305,7 @@ LIB_API int32_t		WStr1PureRefBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1PureRefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureRefFromPos(wstr1* str, const wstr1* other, size_t s);
 // lifecycle (#8)
+void				_InitWStr1(wstr1* str);
 LIB_API void		InitWStr1(wstr1* str);
 LIB_API int32_t		WStr1Deref(wstr1* str);
 LIB_API int32_t		WStr1Clear(wstr1* str);
@@ -289,6 +313,8 @@ LIB_API int32_t		WStr1ClearLazy(wstr1* str);
 LIB_API int32_t		WStr1Attach(wstr1* str, wch* pcs);
 LIB_API int32_t		WStr1Detach(wstr1* str, wch** ppcs = NULL);
 LIB_API int32_t		WStr1ReAttach(wstr1* str, wch* pcs, wch** ppcsOld = NULL);
+int32_t				_WStr1Release(wstr1* str);
+int32_t				_WStr1Abandon(wstr1* str);
 LIB_API int32_t		WStr1Release(wstr1* str);
 LIB_API int32_t		WStr1Abandon(wstr1* str);
 // store (#4)
@@ -297,23 +323,20 @@ LIB_API int32_t		WStr1ToLocal(wstr1* str);
 LIB_API int32_t		WStr1Fit(wstr1* str);
 LIB_API int32_t		WStr1Relen(wstr1* str, size_t len, bool bLazy = false);
 // internal (#18)
-LIB_API void		_InitWStr1(wstr1* str);
-LIB_API void		_WStr1ShallowCopy(wstr1* str, const wstr1* other);
-LIB_API int32_t		_WStr1Move(wstr1* str, wstr1* other);
-LIB_API int32_t		_WStr1InitCap(wstr1* str, size_t cap);
-LIB_API int32_t		_WStr1Recap(wstr1* str, size_t cap);
-LIB_API int32_t		_WStr1InitLen(wstr1* str, size_t len);
-LIB_API int32_t		_WStr1Relen(wstr1 * str, size_t len);
-LIB_API int32_t		_WStr1RelenLazy(wstr1* str, size_t len);
-LIB_API int32_t		_WStr1ExtendBy(wstr1 * str, size_t dLen);
-LIB_API int32_t		_WStr1ShrinkBy(wstr1 * str, size_t dLen);
-LIB_API int32_t		_WStr1ShrinkByLazy(wstr1 * str, size_t dLen);
-LIB_API int32_t		_WStr1ToOwn(wstr1 * str, size_t recap = 0);
-LIB_API int32_t		_WStr1ToLocal(wstr1 * str);
-LIB_API int32_t		_WStr1Overlap(const wstr1* str, const wstr1* str2);
-LIB_API int32_t		_WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s, size_t len);
-LIB_API int32_t		_WStr1Release(wstr1* str);
-LIB_API int32_t		_WStr1Abandon(wstr1* str);
+bool				_WStr1CheckSLen(const wstr1* other, size_t s, size_t len);
+void				_WStr1ShallowCopy(wstr1* str, const wstr1* other);
+int32_t				_WStr1InitCap(wstr1* str, size_t cap);
+int32_t				_WStr1Recap(wstr1* str, size_t cap);
+int32_t				_WStr1InitLen(wstr1* str, size_t len);
+int32_t				_WStr1Relen(wstr1 * str, size_t len);
+int32_t				_WStr1RelenLazy(wstr1* str, size_t len);
+int32_t				_WStr1ExtendBy(wstr1 * str, size_t dLen);
+int32_t				_WStr1ShrinkBy(wstr1 * str, size_t dLen);
+int32_t				_WStr1ShrinkByLazy(wstr1 * str, size_t dLen);
+int32_t				_WStr1ToOwn(wstr1 * str, size_t recap = 0);
+int32_t				_WStr1ToLocal(wstr1 * str);
+int32_t				_WStr1Overlap(const wstr1* str, const wstr1* str2);
+int32_t				_WStr1OverlapCS(const wstr1* str, const wch* pcs, size_t s, size_t len);
 // info (#13)
 LIB_API const wch*	WStr1Str(const wstr1* str);
 LIB_API const wch*	WStr1CStr(wstr1* str, int32_t* pRet = NULL);// ToOwn if REF
@@ -368,7 +391,7 @@ LIB_API int32_t		WStr1ToUpper(wstr1* str);
 LIB_API int32_t		WStr1Substr(wstr1* str, size_t len, const wstr1* strs);
 LIB_API int32_t		WStr1SubstrBy(wstr1* str, size_t s, size_t len, const wstr1* strs);
 LIB_API int32_t		WStr1SubstrFromPos(wstr1* str, size_t s, const wstr1* strs);
-LIB_API int32_t		_WStr1SubstrSelfBy(wstr1* str, size_t s, size_t len);
+int32_t				_WStr1SubstrSelfBy(wstr1* str, size_t s, size_t len);
 LIB_API int32_t		WStr1SubstrSelf(wstr1* str, size_t len);
 LIB_API int32_t		WStr1SubstrSelfBy(wstr1* str, size_t s, size_t len);
 LIB_API int32_t		WStr1SubstrSelfFromPos(wstr1* str, size_t s);
@@ -506,6 +529,6 @@ typedef struct hashwstring
 #pragma endregion hashstr
 
 
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif

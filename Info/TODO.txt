@@ -16,9 +16,14 @@ _WStr1ToOwn×´Ì¬Ò»ÖÂÊ±ÊÇ·ñ²Ù×÷£¿ ²»²Ù×÷£¬ÒòÎªToOwn²»Ó¦°üº¬Recap¹¦ÄÜ£¬ÒòÎªRecapÀïÓ
 _WStr1InitLen²»µ÷ÓÃinitcap£¿	Ã»ÊÂ£¬ËäÈ»ÓÐµãñîºÏ£¬µ«ÊÇ¹¦ÄÜÖØµþ´úÂëÖØÓÃ
 _WStr1ReLenµ÷ÓÃRecap£¿		²»µ÷ÓÃ£¬±£³ÖµÍñîºÏ£¬¶øÇÒ·ÖÖ§ÎÞ·¨ºÏ²¢£¬¹¦ÄÜ²»Ò»ÖÂ
 _WStr1Relen·ÖÖ§ºÏ²¢£¿		²»ÐÐ
-_WStr1ToOwn swap mode
+_WStr1ToOwn swap mode?		²»ÐÐ£¬ÎªÁËÇ¿ÖÃ×´Ì¬
 
-WStr1Deref  ToOwn»òÕßTolocalÌõ¼þÅÐ¶Ï
+WStr1Deref  ToOwn»òÕßTolocalÌõ¼þÅÐ¶Ï£¿ ÒÑ¾­¸ÄÎª_WStr1MakeCSBy2
+³õÊ¼»¯status£¬Ò»¶¨ÒªÉèÖÃlen/len0£¬ p£¿ DONE
+_WStr1PureCopyBy2 NULL statusÒ²¿½±´£¿ DONE  ¶ÔÍâÎÞÏÂ»®Ïß½Ó¿Ú£¬½öÏÞÓÚÎÞ¶¨Î»²ÎÊýcopy£¬ÓÐ¶¨Î»²ÎÊýcopy²»¿ÉÒÔNULL status copy
+ÒÆ³ý_WStr1PureCopyFromPos£¿  DONE
+ÄÚÖÃÏÂ»®Ïßº¯Êý£¬²»ÅÐ¶Ïnull¡¢²ÎÊý£¬µ«ÅÐ¶Ïnull×´Ì¬ºÍindex validËùÒÔ½Ó¿Úº¯Êý²»ÅÐ¶Ïnull×´Ì¬£¿
+ÏÂ»®ÏßFromPos£¬µ÷ÓÃÏÂ»®ÏßBy2°æ±¾£¬¶ø·ÇÏÂ»®Ïßpure°æ±¾FromPos£¿
 		
 		½â¾öÍ¬ÊµÀýÖØµþ		×´Ì¬¿½±´	Copy/ºÍMake°æ±¾¹¦ÄÜÍêÈ«Ò»ÖÂ
 Make		Y			N		N
