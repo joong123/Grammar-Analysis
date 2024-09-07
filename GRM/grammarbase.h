@@ -139,9 +139,9 @@ int32_t ConvertGrmBaseElemTypeR(wstr1* const key, GRM_BASEELEM* const type);
 
 
 
-//
+// *******************************************************************
 // Derived-Formula Grammar System
-//
+// *******************************************************************
 typedef struct grammar_baseelem
 {
 	id_t			id;

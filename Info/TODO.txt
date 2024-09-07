@@ -18,12 +18,16 @@ _WStr1ReLen调用Recap？		不调用，保持低耦合，而且分支无法合并，功能不一致
 _WStr1Relen分支合并？		不行
 _WStr1ToOwn swap mode?		不行，为了强置状态
 
-WStr1Deref  ToOwn或者Tolocal条件判断？ 已经改为_WStr1MakeCSBy2
+WStr1Deref  ToOwn或者Tolocal条件判断？ 已经改为WStr1MakeCSBy2
 初始化status，一定要设置len/len0， p？ DONE
 _WStr1PureCopyBy2 NULL status也拷贝？ DONE  对外无下划线接口，仅限于无定位参数copy，有定位参数copy不可以NULL status copy
 移除_WStr1PureCopyFromPos？  DONE
 内置下划线函数，不判断null、参数，但判断null状态和index valid所以接口函数不判断null状态？
 下划线FromPos，调用下划线By2版本，而非下划线pure版本FromPos？
+check overlap 放到非pure版本
+加回_WStr1PureRefCSBy2，下划线版本不调用非下划线版本		DONE
+simplify interfaces
+_WStr1MakeCSBy2, _WStr1RefCSBy2不再需要，因为有pure版本		DONE
 		
 		解决同实例重叠		状态拷贝	Copy/和Make版本功能完全一致
 Make		Y			N		N
@@ -35,3 +39,8 @@ Copy		Y			Y		N
 CopyCS		Y			DNA		Y
 PureCopy	N			Y		N
 PureCopyCS	N			DNA		Y
+
+
+_puremakeby2	no, because null check in _puremakecsby2
+makecsby2	no, because null check in _puremakecsby2
+puremakecsby2	yes

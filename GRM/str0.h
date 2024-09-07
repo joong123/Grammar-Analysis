@@ -214,7 +214,7 @@ typedef struct wstring2
 
 LIB_API wstr1		WStr1Default();// default string
 LIB_API wstr1		WStr1Inited();// initial string
-// make (#23)
+// make (#22)
 LIB_API wstr1		MakeWStr1CH(wch c, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1CS(const wch* pcs, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1CSBy(const wch* pcs, size_t len, int32_t* pRet = NULL);
@@ -226,7 +226,6 @@ LIB_API wstr1		MakeWStr1By(const wstr1* other, size_t len, int32_t* pRet = NULL)
 LIB_API wstr1		MakeWStr1By2(const wstr1* other, size_t s, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		MakeWStr1FromPos(const wstr1* other, size_t s, int32_t* pRet = NULL);
 LIB_API int32_t		WStr1MakeDefault(wstr1* str);
-int32_t				_WStr1MakeCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
 int32_t				_WStr1MakeBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1MakeCH(wstr1* str, wch c);
 LIB_API int32_t		WStr1MakeCS(wstr1* str, const wch* pcs);
@@ -274,7 +273,7 @@ LIB_API int32_t		WStr1PureCopyFromPos(wstr1* str, const wstr1* other, size_t s);
 // move (#2)
 int32_t				_WStr1Move(wstr1* str, wstr1* other);
 LIB_API int32_t		WStr1Move(wstr1* str, wstr1* other);
-// ref (#18)
+// ref (#17)
 LIB_API wstr1		RefWStr1CS(wch* pcs, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1CSBy(wch* pcs, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1CSBy2(wch* pcs, size_t s, size_t len, int32_t* pRet = NULL);
@@ -283,7 +282,6 @@ LIB_API wstr1		RefWStr1(const wstr1* str, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1By(const wstr1* str, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1By2(const wstr1* str, size_t s, size_t len, int32_t* pRet = NULL);
 LIB_API wstr1		RefWStr1FromPos(const wstr1* str, size_t s, int32_t* pRet = NULL);
-int32_t				_WStr1RefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
 int32_t				_WStr1RefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1RefCS(wstr1* str, wch* pcs);
 LIB_API int32_t		WStr1RefCSBy(wstr1* str, wch* pcs, size_t len);
@@ -294,7 +292,7 @@ LIB_API int32_t		WStr1RefBy(wstr1* str, const wstr1* other, size_t len);
 LIB_API int32_t		WStr1RefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1RefFromPos(wstr1* str, const wstr1* other, size_t s);
 // pure ref (#10)
-int32_t				_WStr1PureRefCSBy2(wstr1* str, const wch* pcs, size_t s, size_t len);
+int32_t				_WStr1PureRefCSBy2(wstr1* str, wch* pcs, size_t s, size_t len);
 int32_t				_WStr1PureRefBy2(wstr1* str, const wstr1* other, size_t s, size_t len);
 LIB_API int32_t		WStr1PureRefCS(wstr1* str, wch* pcs);
 LIB_API int32_t		WStr1PureRefCSBy(wstr1* str, wch* pcs, size_t len);

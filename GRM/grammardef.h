@@ -147,8 +147,8 @@ typedef struct grm_relation_def
 	GRM_RELATION_TYPE	type;
 	GRM_RELATION_CLASS	cls;
 	GRM_RELATION_BIND	bind;		// bind
-	GRM_RELATION_COMMUTATIVE comm;
-	GRM_RELATION_ASSOCIATIVE asso;
+	GRM_RELATION_COMMUTATIVE comm;	// TODO
+	GRM_RELATION_ASSOCIATIVE asso;	// TODO
 	int32_t				priority;	// priority
 	list1				parts;		// store #operand before each part operator
 
@@ -216,9 +216,9 @@ typedef struct grm_elem
 
 
 
-//
+// *******************************************************************
 // Derived-Formula Grammar System
-//
+// *******************************************************************
 
 typedef struct grm_terminal_def
 {
